@@ -2,7 +2,7 @@
 
 gemini-tradingagents AAPL:
   1. Hydrogen -> Vibe-Trading   2. Argon -> ai-hedge-fund   3. Neon -> TradingAgents   4. Carbon (ADK) judge
-  then hard Python rules, then a target position for the optional Alpaca PAPER order.
+  then hard Python rules, then a target position (entry, stop, Target 1 at 1R, Target 2) for the optional Alpaca PAPER order.
 """
 import json
 import os
@@ -13,6 +13,24 @@ from pathlib import Path
 from . import brain, data, rules, stages
 from .judge import judge
 from .roles import model_for
+
+
+def add_targets(v, fallback_rr=2.5):
+    """Two targets from the judge's levels: Target 1 at 1R, Target 2 = the judge's target (or 2.5R if it gave none).
+    The reward:risk rule then checks Target 2."""
+    try:
+        e, s = float(v["entry"]), float(v["stop"])
+    except (KeyError, TypeError, ValueError):
+        return v
+    if v.get("decision") not in ("long", "short") or e == s:
+        return v
+    sg, r = (1 if v["decision"] == "long" else -1), abs(e - s)
+    try:
+        t2 = float(v["target"])
+    except (KeyError, TypeError, ValueError):
+        t2 = e + sg * fallback_rr * r
+    v["target_1"], v["target_2"], v["target"] = round(e + sg * r, 6), t2, t2
+    return v
 
 
 def sizing(plan, m, capital):
@@ -101,6 +119,7 @@ def run(llm, sym, out_dir, capital=10_000, dry_run=False, only=None, deep=False,
         verdict, engine = judge(llm, sym, mtxt, st, mand, dry_run)
     except Exception as e:
         verdict, engine = {"verdict": "NO-GO", "decision": "no trade", "reasons": [f"judge failed: {str(e)[:300]}"]}, "failed"
+    verdict = add_targets(verdict)
     calc = sizing(verdict, m, capital)
     rv, rreasons, factor = rules.check(verdict, calc, capital)
     if calc and factor < 1:
@@ -110,7 +129,8 @@ def run(llm, sym, out_dir, capital=10_000, dry_run=False, only=None, deep=False,
     order = None
     if final in ("GO", "GO SMALLER") and calc:
         order = {"symbol": sym, "side": "buy" if verdict["decision"] == "long" else "sell", "qty": round(calc["quantity"], 6),
-                 "entry": float(verdict["entry"]), "stop": float(verdict["stop"]), "target": float(verdict["target"]), "verdict": final}
+                 "entry": float(verdict["entry"]), "stop": float(verdict["stop"]), "target_1": verdict["target_1"], "target_2": verdict["target_2"],
+                 "target": verdict["target_2"], "verdict": final}
     return {"plan_txt": ptxt, "symbol": sym, "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "metrics_txt": mtxt,
             "stages": st, "judge": verdict, "judge_engine": engine, "calc": calc,
             "rules": {"verdict": rv, "reasons": rreasons, "size_factor": factor}, "final": final, "order": order}
@@ -136,7 +156,7 @@ Command: `{s['command'] or '(not run)'}`
 Hard rules (Python): **{r['rules']['verdict']}**
 {b(r['rules']['reasons'])}
 
-Judge ({model_for('judge')}, {r['judge_engine']}): **{j.get('verdict', 'n/a')}**, {j.get('decision', 'n/a')} · entry {j.get('entry')} · stop {j.get('stop')} · target {j.get('target')}
+Judge ({model_for('judge')}, {r['judge_engine']}): **{j.get('verdict', 'n/a')}**, {j.get('decision', 'n/a')} · entry {j.get('entry')} · stop {j.get('stop')} · Target 1 {j.get('target_1')} · Target 2 {j.get('target_2')}
 {b(j.get('reasons'))}
 
 Where the systems disagree:

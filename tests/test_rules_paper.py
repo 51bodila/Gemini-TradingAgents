@@ -27,8 +27,13 @@ def test_rules():
         os.remove("KILL")
 
 
-def test_paper_order():
-    o, err = paper.build_order({"symbol": "AAPL", "side": "buy", "qty": 7.9, "entry": 355.5, "stop": 341.2, "target": 383.1})
-    assert err is None and o["qty"] == "7" and o["order_class"] == "bracket" and o["stop_loss"]["stop_price"] == "341.20"
-    assert paper.build_order({"symbol": "AAPL", "side": "buy", "qty": .4, "entry": 1, "stop": .9, "target": 1.2})[0] is None
+def test_paper_orders_two_targets():
+    o = {"symbol": "AAPL", "side": "buy", "qty": 7.9, "entry": 355.5, "stop": 341.2, "target_1": 369.8, "target_2": 383.1, "target": 383.1}
+    orders, err = paper.build_orders(o)
+    assert err is None and [x["qty"] for x in orders] == ["3", "4"]
+    assert [x["take_profit"]["limit_price"] for x in orders] == ["369.80", "383.10"]
+    assert all(x["order_class"] == "bracket" and x["stop_loss"]["stop_price"] == "341.20" for x in orders)
+    one, _ = paper.build_orders({**o, "qty": 1.2})
+    assert len(one) == 1 and one[0]["take_profit"]["limit_price"] == "383.10"      # 1 share: single bracket to Target 2
+    assert paper.build_orders({**o, "qty": .4})[0] is None
     assert "paper-api.alpaca.markets" in paper.PAPER_ORDERS_URL and "api.alpaca.markets" not in paper.PAPER_ORDERS_URL.replace("paper-api.", "")

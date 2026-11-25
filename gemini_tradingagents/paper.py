@@ -13,13 +13,23 @@ import urllib.request
 PAPER_ORDERS_URL = "https://paper-api.alpaca.markets/v2/orders"  # paper only, by design
 
 
-def build_order(o):
+def _bracket(o, qty, target):
+    return {"symbol": o["symbol"], "qty": str(qty), "side": o["side"], "type": "limit", "time_in_force": "day",
+            "limit_price": f"{o['entry']:.2f}", "order_class": "bracket",
+            "take_profit": {"limit_price": f"{target:.2f}"}, "stop_loss": {"stop_price": f"{o['stop']:.2f}"}}
+
+
+def build_orders(o):
+    """Half the shares take profit at Target 1, the rest at Target 2. One share: a single bracket to Target 2."""
     qty = math.floor(o["qty"])  # bracket orders need whole shares
     if qty < 1:
         return None, f"sized quantity {o['qty']:.4f} is below 1 share: no order"
-    return {"symbol": o["symbol"], "qty": str(qty), "side": o["side"], "type": "limit", "time_in_force": "day",
-            "limit_price": f"{o['entry']:.2f}", "order_class": "bracket",
-            "take_profit": {"limit_price": f"{o['target']:.2f}"}, "stop_loss": {"stop_price": f"{o['stop']:.2f}"}}, None
+    t2 = o.get("target_2", o.get("target"))
+    t1 = o.get("target_1")
+    if qty == 1 or t1 is None:
+        return [_bracket(o, qty, t2)], None
+    q1 = qty // 2
+    return [_bracket(o, q1, t1), _bracket(o, qty - q1, t2)], None
 
 
 def paper(symbol, out_dir, send=False):
@@ -36,15 +46,15 @@ def paper(symbol, out_dir, send=False):
     if not o:
         print(f"Latest {s} verdict ({saved.get('generated')}): {saved.get('final')}. No order.")
         return 0
-    if s.endswith("USDT"):
+    if s.endswith(("USDT", "-USD", "USDC")):
         print("Crypto: Alpaca paper bracket orders are stocks-only. Use the NautilusTrader sandbox (README, next steps).")
         return 1
-    order, err = build_order(o)
+    orders, err = build_orders(o)
     if err:
         print(err)
         return 0
-    print(f"Alpaca PAPER order from research {saved.get('generated')} (verdict {saved.get('final')}):")
-    print(json.dumps(order, indent=1))
+    print(f"Alpaca PAPER orders from research {saved.get('generated')} (verdict {saved.get('final')}):")
+    print(json.dumps(orders, indent=1))
     if not send:
         print("Not sent (dry run). Add --send to post it to your Alpaca PAPER account.")
         return 0
@@ -52,13 +62,14 @@ def paper(symbol, out_dir, send=False):
     if not (key and sec):
         print("ALPACA_KEY / ALPACA_SECRET missing in .env (free paper account at alpaca.markets).")
         return 1
-    req = urllib.request.Request(PAPER_ORDERS_URL, data=json.dumps(order).encode(), method="POST",
-                                 headers={"APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": sec, "Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            resp = json.loads(r.read())
-        print(f"Sent to Alpaca PAPER: id {resp.get('id')}, status {resp.get('status')}")
-    except urllib.error.HTTPError as e:
-        print(f"Alpaca PAPER rejected the order ({e.code}): {e.read().decode(errors='ignore')[:300]}")
-        return 1
+    for i, order in enumerate(orders, 1):
+        req = urllib.request.Request(PAPER_ORDERS_URL, data=json.dumps(order).encode(), method="POST",
+                                     headers={"APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": sec, "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                resp = json.loads(r.read())
+            print(f"Sent order {i}/{len(orders)} to Alpaca PAPER (take profit {order['take_profit']['limit_price']}): id {resp.get('id')}, status {resp.get('status')}")
+        except urllib.error.HTTPError as e:
+            print(f"Alpaca PAPER rejected order {i}/{len(orders)} ({e.code}): {e.read().decode(errors='ignore')[:300]}")
+            return 1
     return 0

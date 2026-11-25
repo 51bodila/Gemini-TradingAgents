@@ -3,7 +3,7 @@
 Built on TauricResearch/TradingAgents, HKUDS/Vibe-Trading and google/adk-python. Not affiliated with Google or Tauric Research. The command-line tool is called `gemini-tradingagents`.
 
 One command, four Gemini 4 models. Gemini 4 Neon thinks up the trade, Hydrogen backtests it, Argon argues it like a
-hedge fund committee, and Carbon decides: GO, GO SMALLER or NO-GO, with entry, stop, target and position size.
+hedge fund committee, and Carbon decides: GO, GO SMALLER or NO-GO, with entry, stop, two targets and position size.
 Built on three of the most-starred open-source trading projects and Google's own agent framework.
 
 **Requirements: Python 3.11, 3.12 or 3.13, and one Gemini API key on a Google project with billing enabled.** Windows, macOS, Linux. Market data needs no extra keys.
@@ -16,7 +16,7 @@ gemini-tradingagents AAPL
  1. Neon     ─▶ the brain           thesis + test plan (TradingAgents, or Gemini directly)
  2. Hydrogen ─▶ Vibe-Trading        prices, fundamentals, news; backtests Neon's plan + walk-forward
  3. Argon    ─▶ committee           bull vs bear vs risk officer vs portfolio manager   (2 and 3 run at the same time)
- 4. Carbon   ─▶ ADK judge           reads everything ─▶ GO / GO SMALLER / NO-GO + entry, stop, target
+ 4. Carbon   ─▶ ADK judge           reads everything ─▶ GO / GO SMALLER / NO-GO + entry, stop, Target 1, Target 2
  5. Python   ─▶ hard risk rules     can only make the verdict stricter ─▶ position size ─▶ optional Alpaca PAPER order
 ```
 
@@ -85,7 +85,7 @@ gemini-tradingagents audit strategy.py --report backtest.txt   # Neon lists bugs
 
 Every run also saves the data pack (`reports/<TICKER>-<time>-datapack.json` and `.md`): Python price metrics from Yahoo Finance with their as-of date, plus Vibe-Trading's prices, fundamentals, news and backtest with sources. The committee, Neon and the judge all work from it.
 
-The report has the final verdict, the hard-rule checks, the judge's reasons and the conflicts it found between the three systems, the position size computed in Python, the target position, every tool's command and output, and the cost of the direct Gemini calls.
+The report has the final verdict, the hard-rule checks, the judge's reasons and the conflicts it found between the three systems, the position size computed in Python, the target position with Target 1 (1R) and Target 2 (the judge's target, or 2.5R if it gave none), every tool's command and output, and the cost of the direct Gemini calls.
 
 ## Cost
 
@@ -128,7 +128,7 @@ Yahoo Finance data is for personal use. gemini-tradingagents fetches data at run
 
 ## Paper trading
 
-`--paper` turns the target position into an Alpaca bracket order: limit entry, take-profit, stop-loss, whole shares. It prints by default. `--send` posts it to `https://paper-api.alpaca.markets` with `ALPACA_KEY` / `ALPACA_SECRET` from an Alpaca paper account (no deposit needed). The code contains no live-trading endpoint. It refuses dry-run results and NO-GO verdicts. Stocks only.
+`--paper` turns the target position into Alpaca bracket orders: limit entry, stop-loss, whole shares; half the shares take profit at Target 1, the rest at Target 2 (one share: a single bracket to Target 2). It prints by default. `--send` posts it to `https://paper-api.alpaca.markets` with `ALPACA_KEY` / `ALPACA_SECRET` from an Alpaca paper account (no deposit needed). The code contains no live-trading endpoint. It refuses dry-run results and NO-GO verdicts. Stocks only.
 
 ## Credits
 

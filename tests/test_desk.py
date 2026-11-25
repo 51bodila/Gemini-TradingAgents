@@ -51,6 +51,7 @@ def test_go_smaller(monkeypatch, tmp_path=None):
     assert abs(r["calc"]["reward_risk"] - 2.5) < 1e-9
     assert r["rules"]["verdict"] == "GO SMALLER" and abs(r["calc"]["position_pct_capital"] - 20) < 1e-6  # 24% cut to 20% cap
     assert r["final"] == "GO SMALLER" and r["order"]["side"] == "buy"
+    assert abs(r["order"]["target_1"] - 124.9) < 1e-9 and r["order"]["target_2"] == 132.4   # T1 at 1R, T2 = Carbon's target
     judge_prompt = llm.calls[1][2]
     assert "committee says hi" in judge_prompt and "vibe_trading says hi" in judge_prompt and "HARD RULES" in judge_prompt
     md = desk.report_md(r, llm.usage.table())
@@ -84,3 +85,8 @@ def test_fast_mode_one_argon_call(monkeypatch):
     assert not called["swarm"]                                              # no 4-agent swarm in --fast
     assert [c[0] for c in llm.calls] == ["brain", "committee (one call)", "judge"]
     assert "vibe_trading says hi" in llm.calls[1][2] and "trend intact" in llm.calls[1][2]   # debate sees pack + plan
+
+
+def test_target2_fallback_when_judge_gives_none():
+    v = desk.add_targets({"decision": "short", "entry": 100.0, "stop": 104.0})
+    assert v["target_1"] == 96.0 and v["target_2"] == 90.0 and v["target"] == 90.0   # 2.5R fallback, rules check Target 2

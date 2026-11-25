@@ -105,7 +105,11 @@ def main(argv=None):
             if s["status"] in ("needs billing", "failed") and s.get("stderr"):
                 print("               " + s["stderr"].splitlines()[0][:200])
         print(f"Judge          {model_for('judge'):18s} {r['judge_engine']}")
-        print(f"Verdict: {r['final']}\nReport: {path}")
+        print(f"Verdict: {r['final']}")
+        o = r["order"]
+        if o:
+            print(f"{o['side'].upper()} {o['qty']} {o['symbol']} · entry {o['entry']} · stop {o['stop']} · Target 1 {o['target_1']} · Target 2 {o['target_2']}")
+        print(f"Report: {path}")
         return 0
     sub = ap.add_subparsers(dest="cmd", required=True)
     a = sub.add_parser("audit", help="second opinion on a strategy's code and backtest report (Neon finds, Carbon confirms)")
