@@ -1,4 +1,4 @@
-Gemini TradingAgents (gemini-desk) is MIT licensed (see LICENSE).
+Gemini TradingAgents is MIT licensed (see LICENSE).
 
 It installs and runs these projects as separate tools; no code from them is copied into this repository:
 - TauricResearch/TradingAgents - Apache License 2.0 - https://github.com/TauricResearch/TradingAgents

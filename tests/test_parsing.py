@@ -2,7 +2,7 @@
 import json
 import os
 import time
-from gemini_desk import stages
+from gemini_tradingagents import stages
 
 
 def test_vibe_answer_from_trace_and_metrics(tmp_path, monkeypatch):

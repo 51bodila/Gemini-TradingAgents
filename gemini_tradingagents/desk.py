@@ -1,6 +1,6 @@
 """One command, four models, three proven repos, one verdict.
 
-gemini-desk AAPL:
+gemini-tradingagents AAPL:
   1. Hydrogen -> Vibe-Trading   2. Argon -> ai-hedge-fund   3. Neon -> TradingAgents   4. Carbon (ADK) judge
   then hard Python rules, then a target position for the optional Alpaca PAPER order.
 """
@@ -33,7 +33,7 @@ def sizing(plan, m, capital):
 
 def data_pack(sym, mtxt, vibe, out_dir, stamp, plan_txt=""):
     """One pack for every later stage: Python metrics (Yahoo, as-of date inside) + Vibe-Trading's output. Saved as JSON and Markdown."""
-    pack = {"symbol": sym, "neon_plan": plan_txt, "python_metrics": {"source": "Yahoo Finance chart endpoint, computed by gemini-desk", "text": mtxt},
+    pack = {"symbol": sym, "neon_plan": plan_txt, "python_metrics": {"source": "Yahoo Finance chart endpoint, computed by gemini-tradingagents", "text": mtxt},
             "vibe_trading": {"model": vibe.get("model"), "status": vibe["status"], "output": vibe["output"]}}
     md = f"# Data pack {sym}\n\n## Neon plan\n{plan_txt}\n\n## Python metrics (Yahoo Finance)\n```\n{mtxt}\n```\n\n## Vibe-Trading ({vibe.get('model')}, {vibe['status']})\n{vibe['output'] or '(no output)'}\n"
     out = Path(out_dir)
@@ -128,7 +128,7 @@ Command: `{s['command'] or '(not run)'}`
 ```
 {(s['output'] or s.get('stderr') or '(no output)')[:6000]}
 ```""")
-    return f"""# {r['symbol']} · gemini-desk
+    return f"""# {r['symbol']} · gemini-tradingagents
 
 {r['generated']}. Research and paper trading only. Not financial advice.
 
@@ -164,7 +164,7 @@ Computed in Python:
 ## Cost
 {tool_cost_table(r['stages'])}
 
-Direct Gemini calls by gemini-desk:
+Direct Gemini calls by gemini-tradingagents:
 {usage_table}
 
 List prices per 1M tokens: Hydrogen $1.50/$7.50, Argon and Carbon $2/$10 (until Nov 30 2026), Neon $3/$15. Cached input is billed lower by Google, so real cost is at or below these numbers. On the free tier (Hydrogen) the actual cost is $0.

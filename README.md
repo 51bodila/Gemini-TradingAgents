@@ -1,8 +1,8 @@
 # Gemini TradingAgents
 
-Built on TauricResearch/TradingAgents, HKUDS/Vibe-Trading and google/adk-python. Not affiliated with Google or Tauric Research. The command-line tool is called `gemini-desk`.
+Built on TauricResearch/TradingAgents, HKUDS/Vibe-Trading and google/adk-python. Not affiliated with Google or Tauric Research. The command-line tool is called `gemini-tradingagents`.
 
-A trading desk in one command. Gemini 4 Neon thinks up the trade, Hydrogen backtests it, Argon argues it like a
+One command, four Gemini 4 models. Gemini 4 Neon thinks up the trade, Hydrogen backtests it, Argon argues it like a
 hedge fund committee, and Carbon decides: GO, GO SMALLER or NO-GO, with entry, stop, target and position size.
 Built on three of the most-starred open-source trading projects and Google's own agent framework.
 
@@ -11,7 +11,7 @@ Built on three of the most-starred open-source trading projects and Google's own
 Billing is required: Gemini 4 Argon, Neon and Carbon have no free tier, and Hydrogen's free tier (20 requests a day) is not enough for one report. See [Cost](#cost).
 
 ```
-gemini-desk AAPL
+gemini-tradingagents AAPL
 
  1. Neon     ─▶ the brain           thesis + test plan (TradingAgents, or Gemini directly)
  2. Hydrogen ─▶ Vibe-Trading        prices, fundamentals, news; backtests Neon's plan + walk-forward
@@ -31,7 +31,7 @@ gemini-desk AAPL
 
 Optional plugin (`install.ps1 -WithHedgeFund` / `install.sh --with-hedge-fund`): [virattt/ai-hedge-fund](https://github.com/virattt/ai-hedge-fund) (64,851 stars, MIT), an investor committee of Graham, Buffett, Munger and earnings drift on `gemini-4-argon`. It runs only when `FINANCIAL_DATASETS_API_KEY` is set (financialdatasets.ai, $20 one-time for 1,000 requests).
 
-Stars from the GitHub API on 2026-11-25. gemini-desk installs these as separate tools and calls their command lines; it copies none of their code. This repo is MIT.
+Stars from the GitHub API on 2026-11-25. gemini-tradingagents installs these as separate tools and calls their command lines; it copies none of their code. This repo is MIT.
 
 ## Why each model got its job
 
@@ -56,7 +56,7 @@ Python 3.11, 3.12 or 3.13.
 sh install.sh
 ```
 
-The installer works like pipx: each tool gets its own environment, because their dependencies clash (ai-hedge-fund pins `langchain-core<0.4`, Vibe-Trading needs `>=1.0`). `.venv` holds gemini-desk and `google-adk 2.15.1`; `.tools/vibe` holds `vibe-trading-ai 0.1.19`; `.tools/aihf` holds `aihf 2.7.2` only with `-WithHedgeFund` / `--with-hedge-fund`; TradingAgents `1.0.1` comes from its official installer. gemini-desk runs each tool by full path and imports none of them. Put one key in `.env`:
+The installer works like pipx: each tool gets its own environment, because their dependencies clash (ai-hedge-fund pins `langchain-core<0.4`, Vibe-Trading needs `>=1.0`). `.venv` holds gemini-tradingagents and `google-adk 2.15.1`; `.tools/vibe` holds `vibe-trading-ai 0.1.19`; `.tools/aihf` holds `aihf 2.7.2` only with `-WithHedgeFund` / `--with-hedge-fund`; TradingAgents `1.0.1` comes from its official installer. gemini-tradingagents runs each tool by full path and imports none of them. Put one key in `.env`:
 
 ```
 GEMINI_API_KEY=...        # aistudio.google.com
@@ -67,20 +67,20 @@ TradingAgents publishes Linux and macOS builds. On Windows the installer puts it
 Check the setup:
 
 ```
-gemini-desk doctor        # which tools are installed, which keys are set (values never printed)
-gemini-desk models        # which model does which job
+gemini-tradingagents doctor        # which tools are installed, which keys are set (values never printed)
+gemini-tradingagents models        # which model does which job
 ```
 
 ## Use
 
 ```
-gemini-desk AAPL                       # all stages, one Markdown report in reports/
-gemini-desk AAPL --fast                # cheapest mode (see Cost)
-gemini-desk AAPL --only brain,vibe     # pick stages (brain, vibe, committee, aihf); the judge always runs
-gemini-desk --dry-run AAPL             # print every command that would run, call nothing
-gemini-desk AAPL --paper               # print the Alpaca PAPER bracket order from the latest verdict
-gemini-desk AAPL --paper --send        # send it to Alpaca PAPER (paper-api.alpaca.markets only)
-gemini-desk audit strategy.py --report backtest.txt   # Neon lists bugs, Carbon confirms each one
+gemini-tradingagents AAPL                       # all stages, one Markdown report in reports/
+gemini-tradingagents AAPL --fast                # cheapest mode (see Cost)
+gemini-tradingagents AAPL --only brain,vibe     # pick stages (brain, vibe, committee, aihf); the judge always runs
+gemini-tradingagents --dry-run AAPL             # print every command that would run, call nothing
+gemini-tradingagents AAPL --paper               # print the Alpaca PAPER bracket order from the latest verdict
+gemini-tradingagents AAPL --paper --send        # send it to Alpaca PAPER (paper-api.alpaca.markets only)
+gemini-tradingagents audit strategy.py --report backtest.txt   # Neon lists bugs, Carbon confirms each one
 ```
 
 Every run also saves the data pack (`reports/<TICKER>-<time>-datapack.json` and `.md`): Python price metrics from Yahoo Finance with their as-of date, plus Vibe-Trading's prices, fundamentals, news and backtest with sources. The committee, Neon and the judge all work from it.
@@ -124,7 +124,7 @@ Checked in plain Python after the judge. The judge can be stricter, never looser
 | ai-hedge-fund plugin | off | `FINANCIAL_DATASETS_API_KEY` (financialdatasets.ai: $20 one-time for 1,000 requests, or $200/month) or an x402 wallet |
 | Judge price metrics | Yahoo Finance chart data, computed in Python | none |
 
-Yahoo Finance data is for personal use. gemini-desk fetches data at run time and never stores or redistributes it (`reports/` and caches are git-ignored).
+Yahoo Finance data is for personal use. gemini-tradingagents fetches data at run time and never stores or redistributes it (`reports/` and caches are git-ignored).
 
 ## Paper trading
 

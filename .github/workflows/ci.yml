@@ -12,7 +12,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install gemini-desk + test runner (no keys)
+      - name: Install gemini-tradingagents + test runner (no keys)
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e . pytest
@@ -23,4 +23,4 @@ jobs:
       - name: Tests
         run: python -m pytest -q tests
       - name: Pipeline dry-run (no keys, no model calls)
-        run: python -m gemini_desk --dry-run AAPL
+        run: python -m gemini_tradingagents --dry-run AAPL

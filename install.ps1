@@ -1,7 +1,7 @@
-# gemini-desk installer for Windows PowerShell 5.1 and PowerShell 7.
+# gemini-tradingagents installer for Windows PowerShell 5.1 and PowerShell 7.
 # Like pipx: every tool gets its own environment, because their dependencies clash
 # (ai-hedge-fund pins langchain-core<0.4, Vibe-Trading needs langchain-core>=1.0).
-#   .venv          gemini-desk + google-adk
+#   .venv          gemini-tradingagents + google-adk
 #   .tools\vibe    vibe-trading-ai 0.1.19
 #   .tools\aihf    aihf 2.7.2 (optional: -WithHedgeFund)
 #   WSL            TradingAgents 1.0.1 (Linux/macOS builds only)
@@ -52,7 +52,7 @@ Step "[1/6] Finding Python 3.11-3.13"
 $python = Find-Python
 Write-Host "  using $python"
 
-Step "[2/6] .venv: gemini-desk + google-adk"
+Step "[2/6] .venv: gemini-tradingagents + google-adk"
 $venvPy = New-Venv ".venv"
 Invoke-Cmd $venvPy @("-m", "pip", "install", "--upgrade", "pip")
 Invoke-Cmd $venvPy @("-m", "pip", "install", "-e", ".")
@@ -93,5 +93,5 @@ Step "[6/6] Settings file"
 if (Test-Path .env) { Write-Host "  .env already exists (your key stays)" } elseif ($DryRun) { Write-Host "  > copy .env.example .env" } else { Copy-Item .env.example .env; Write-Host "  created .env - put your GEMINI_API_KEY in it" }
 
 Step "Done."
-Write-Host "  Check:  .\.venv\Scripts\gemini-desk.exe doctor"
-Write-Host "  Run:    .\.venv\Scripts\gemini-desk.exe AAPL"
+Write-Host "  Check:  .\.venv\Scripts\gemini-tradingagents.exe doctor"
+Write-Host "  Run:    .\.venv\Scripts\gemini-tradingagents.exe AAPL"

@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
-# gemini-desk installer for macOS / Linux. Like pipx: each tool in its own environment (their langchain pins clash).
-#   .venv          gemini-desk + google-adk
+# gemini-tradingagents installer for macOS / Linux. Like pipx: each tool in its own environment (their langchain pins clash).
+#   .venv          gemini-tradingagents + google-adk
 #   .tools/vibe    vibe-trading-ai 0.1.19
 #   .tools/aihf    aihf 2.7.2 (optional: --with-hedge-fund)
 #   ~/.local/bin   TradingAgents 1.0.1
@@ -12,7 +12,7 @@ step() { printf '\n%s\n' "$1"; }
 step "[1/6] Python"
 "$PY" -c 'import sys; assert (3,11) <= sys.version_info[:2] < (3,14), "need Python 3.11-3.13"'
 
-step "[2/6] .venv: gemini-desk + google-adk"
+step "[2/6] .venv: gemini-tradingagents + google-adk"
 [ -x .venv/bin/python ] || "$PY" -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install -e .
@@ -38,5 +38,5 @@ step "[6/6] Settings file"
 [ -f .env ] || cp .env.example .env
 
 step "Done."
-echo "  Check:  .venv/bin/gemini-desk doctor"
-echo "  Run:    .venv/bin/gemini-desk AAPL"
+echo "  Check:  .venv/bin/gemini-tradingagents doctor"
+echo "  Run:    .venv/bin/gemini-tradingagents AAPL"

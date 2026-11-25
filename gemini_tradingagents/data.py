@@ -15,7 +15,7 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-UA = "Mozilla/5.0 (gemini-desk research tool)"
+UA = "Mozilla/5.0 (gemini-tradingagents research tool)"
 LAST_NAME = {}  # symbol -> company name from the price source
 
 

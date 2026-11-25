@@ -1,4 +1,4 @@
-"""The three proven repos, each driven by one Gemini 4 model. gemini-desk only calls their CLIs; it copies none of their code.
+"""The three proven repos, each driven by one Gemini 4 model. gemini-tradingagents only calls their CLIs; it copies none of their code.
 
   Hydrogen -> HKUDS/Vibe-Trading (MIT)                 data pack: prices, fundamentals, news, backtest, walk-forward
   Argon    -> Vibe-Trading investment_committee preset   bull vs bear debate, risk officer, portfolio manager

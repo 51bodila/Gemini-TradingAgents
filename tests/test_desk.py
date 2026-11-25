@@ -1,8 +1,8 @@
 """Offline: fake tools and a fake model. Checks the pipeline order (Neon brain -> Hydrogen backtest + Argon committee
 -> Carbon judge -> Python rules -> order) and that a failing stage never stops the run."""
 import json
-from gemini_desk import brain, data, desk, judge as judge_mod, stages
-from gemini_desk.llm import Usage
+from gemini_tradingagents import brain, data, desk, judge as judge_mod, stages
+from gemini_tradingagents.llm import Usage
 import tempfile
 
 

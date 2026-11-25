@@ -1,13 +1,13 @@
-"""gemini-desk command line.
+"""gemini-tradingagents command line.
 
-  gemini-desk AAPL                     run all 4 stages, write one report
-  gemini-desk AAPL --only vibe,ta      run some stages (vibe, aihf, ta); the Carbon judge always runs
-  gemini-desk AAPL --paper             print the Alpaca PAPER order from the latest AAPL verdict
-  gemini-desk AAPL --paper --send      send it to Alpaca PAPER (paper-api only)
-  gemini-desk audit strategy.py --report backtest.txt
-  gemini-desk doctor                   what is installed, which keys are set
-  gemini-desk models                   which model does which job
-  gemini-desk --dry-run AAPL           show every command, call nothing
+  gemini-tradingagents AAPL                     run all 4 stages, write one report
+  gemini-tradingagents AAPL --only vibe,ta      run some stages (vibe, aihf, ta); the Carbon judge always runs
+  gemini-tradingagents AAPL --paper             print the Alpaca PAPER order from the latest AAPL verdict
+  gemini-tradingagents AAPL --paper --send      send it to Alpaca PAPER (paper-api only)
+  gemini-tradingagents audit strategy.py --report backtest.txt
+  gemini-tradingagents doctor                   what is installed, which keys are set
+  gemini-tradingagents models                   which model does which job
+  gemini-tradingagents --dry-run AAPL           show every command, call nothing
 """
 import argparse
 import json
@@ -73,7 +73,7 @@ def main(argv=None):
     for k, v in ca_env().items():  # same CA fix for google-adk / httpx in this process
         os.environ.setdefault(k, v)
     argv = list(sys.argv[1:] if argv is None else argv)
-    ap = argparse.ArgumentParser(prog="gemini-desk", description="Three proven trading repos, four Gemini 4 models, one verdict.")
+    ap = argparse.ArgumentParser(prog="gemini-tradingagents", description="Three proven trading repos, four Gemini 4 models, one verdict.")
     ap.add_argument("--dry-run", action="store_true", help="show every command, call nothing (no key needed)")
     ap.add_argument("--out", default="reports")
     cmds = {"audit", "doctor", "models"}

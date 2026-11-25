@@ -26,7 +26,7 @@ def paper(symbol, out_dir, send=False):
     s = symbol.upper()
     f = out_dir / f"{s}-latest.order.json"
     if not f.exists():
-        print(f"No research for {s} yet. Run: gemini-desk {s}")
+        print(f"No research for {s} yet. Run: gemini-tradingagents {s}")
         return 1
     saved = json.loads(f.read_text())
     o = saved.get("order")

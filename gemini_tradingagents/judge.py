@@ -2,7 +2,7 @@
 
 It reads the three repos' outputs plus numbers computed in Python and proposes one target position.
 Hard Python rules (rules.py) run on that proposal afterwards and can only make it stricter.
-If google-adk is not installed, the same prompt goes through gemini_desk.llm (plain HTTPS).
+If google-adk is not installed, the same prompt goes through gemini_tradingagents.llm (plain HTTPS).
 """
 import asyncio
 import json
@@ -49,8 +49,8 @@ async def _adk(model, prompt):
     from google.genai import types
 
     agent = LlmAgent(name="carbon_judge", model=model, instruction=INSTRUCTION, output_schema=SCHEMA)
-    runner = InMemoryRunner(agent=agent, app_name="gemini-desk")
-    session = await runner.session_service.create_session(app_name="gemini-desk", user_id="desk")
+    runner = InMemoryRunner(agent=agent, app_name="gemini-tradingagents")
+    session = await runner.session_service.create_session(app_name="gemini-tradingagents", user_id="desk")
     text = ""
     async for ev in runner.run_async(user_id="desk", session_id=session.id,
                                      new_message=types.Content(role="user", parts=[types.Part(text=prompt)])):
@@ -68,7 +68,7 @@ def judge(llm, sym, metrics_txt, stages, mandate, dry_run=False):
     try:
         import google.adk  # noqa: F401
     except ImportError:
-        return parse_json(llm.ask("judge", model, INSTRUCTION, prompt, schema=SCHEMA)), "gemini_desk.llm (google-adk not installed)"
+        return parse_json(llm.ask("judge", model, INSTRUCTION, prompt, schema=SCHEMA)), "gemini_tradingagents.llm (google-adk not installed)"
     text = asyncio.run(_adk(model, prompt))
     llm.usage.add("judge (ADK; tokens in ADK logs)", model, 0, 0, 0.0)
     return parse_json(text), "google-adk LlmAgent"

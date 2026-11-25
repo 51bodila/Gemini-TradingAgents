@@ -1,7 +1,7 @@
-# gemini-desk mandate for virattt/ai-hedge-fund (aihf). Format from its hedge_fund/fund/example.yaml (MIT).
-# No tickers here: gemini-desk passes --universe <TICKER>.
+# gemini-tradingagents mandate for virattt/ai-hedge-fund (aihf). Format from its hedge_fund/fund/example.yaml (MIT).
+# No tickers here: gemini-tradingagents passes --universe <TICKER>.
 schema_version: 2
-name: gemini-desk-committee
+name: gemini-tradingagents-committee
 strategies:
   - name: deep-value
     blend: {mode: long_only}

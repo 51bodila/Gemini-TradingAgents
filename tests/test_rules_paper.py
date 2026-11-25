@@ -1,7 +1,7 @@
 """Hard rules and paper-order building, offline."""
 import json
 import os
-from gemini_desk import rules, paper
+from gemini_tradingagents import rules, paper
 
 
 def plan(e=100, s=95, t=112.5, d="long"):
