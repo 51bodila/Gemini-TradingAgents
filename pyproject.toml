@@ -1,0 +1,24 @@
+[project]
+name = "gemini-desk"
+version = "0.2.0"
+description = "Three proven open-source trading repos, four Gemini 4 models, one verdict."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "google-adk==2.15.1",        # google/adk-python, Apache-2.0: the Carbon judge
+    "python-dotenv>=1.0",
+]
+# Vibe-Trading and ai-hedge-fund are NOT dependencies: the installer puts each in its own venv under .tools/
+# (aihf pins langchain-core<0.4, vibe-trading-ai needs >=1.0) and gemini-desk runs their CLIs by full path.
+
+[project.scripts]
+gemini-desk = "gemini_desk.cli:main"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["gemini_desk"]

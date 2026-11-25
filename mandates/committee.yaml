@@ -1,0 +1,31 @@
+# gemini-desk mandate for virattt/ai-hedge-fund (aihf). Format from its hedge_fund/fund/example.yaml (MIT).
+# No tickers here: gemini-desk passes --universe <TICKER>.
+schema_version: 2
+name: gemini-desk-committee
+strategies:
+  - name: deep-value
+    blend: {mode: long_only}
+    weight: 0.6
+    models:
+      - name: graham
+        weight: 2.0
+      - name: buffett
+      - name: munger
+  - name: earnings-drift
+    blend: {mode: long_short}
+    weight: 0.4
+    models:
+      - name: pead
+risk:
+  max_position_pct: 0.20
+  max_gross_exposure: 1.0
+  halve_drawdown_pct: 0.10
+  max_drawdown_pct: 0.20
+costs:
+  spread_bps: 5
+  commission_per_share: 0.005
+  impact_coefficient: 1.0
+  min_trade_pct: 0.005
+capital: 100000
+rebalance: weekly
+benchmark: SPY

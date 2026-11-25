@@ -1,0 +1,10 @@
+.env
+.gd_cache/
+reports/
+__pycache__/
+*.order.json
+KILL
+.tools/
+.venv/
+*.egg-info/
+.vibe-home/
