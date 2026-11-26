@@ -1,5 +1,7 @@
 # Gemini TradingAgents
 
+**Run 4 Gemini 4 models as one hedge fund desk.**
+
 Built on TauricResearch/TradingAgents, HKUDS/Vibe-Trading and google/adk-python. Not affiliated with Google or Tauric Research. The command-line tool is called `gemini-tradingagents`.
 
 One command, four Gemini 4 models. Gemini 4 Neon thinks up the trade, Hydrogen backtests it, Argon argues it like a
