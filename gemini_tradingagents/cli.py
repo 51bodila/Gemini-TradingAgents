@@ -76,8 +76,9 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="gemini-tradingagents", description="Three proven trading repos, four Gemini 4 models, one verdict.")
     ap.add_argument("--dry-run", action="store_true", help="show every command, call nothing (no key needed)")
     ap.add_argument("--out", default="reports")
-    cmds = {"audit", "doctor", "models"}
-    first = next((a for a in argv if not a.startswith("-")), None)
+    cmds = {"audit", "doctor", "models", "score"}
+    takes_value = {"--out", "--only", "--capital", "--report"}
+    first = next((a for i, a in enumerate(argv) if not a.startswith("-") and (i == 0 or argv[i - 1] not in takes_value)), None)
     if first and first not in cmds:
         ap.add_argument("symbol")
         ap.add_argument("--only", help="comma list of stages: vibe, committee, ta, aihf")
@@ -99,7 +100,9 @@ def main(argv=None):
         path = out / f"{r['symbol']}-{stamp}{'-dryrun' if args.dry_run else ''}.md"
         path.write_text(report_md(r, llm.usage.table()), encoding="utf-8")
         (out / f"{r['symbol']}-latest.order.json").write_text(json.dumps(
-            {"order": r["order"], "final": r["final"], "generated": r["generated"], "dry_run": args.dry_run}, indent=1))
+            {"order": r["order"], "final": r["final"], "generated": r["generated"], "dry_run": args.dry_run,
+             "capital": args.capital, "max_position_pct": __import__("gemini_tradingagents.rules", fromlist=["mandate"]).mandate()["max_position_pct"]},
+            indent=1))
         for s in r["stages"]:
             print(f"{s['stage']:14s} {s.get('model', ''):18s} {s['status']}" + (f"  $ {s['command']}" if args.dry_run else ""))
             if s["status"] in ("needs billing", "failed") and s.get("stderr"):
@@ -123,7 +126,12 @@ def main(argv=None):
     a.add_argument("--report")
     sub.add_parser("doctor")
     sub.add_parser("models")
+    sub.add_parser("score", help="hit rate, Brier score and calibration of past GO calls in reports/journal.csv")
     args = ap.parse_args(argv)
+    if args.cmd == "score":
+        from . import data, score
+        print(score.report(Path(args.out) / "journal.csv", data.daily_bars))
+        return 0
     if args.cmd == "doctor":
         return doctor()
     if args.cmd == "models":

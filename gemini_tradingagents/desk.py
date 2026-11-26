@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import brain, data, laws, rules, stages
-from .judge import judge
+from .judge import SCHEMA as JUDGE_SCHEMA, judge
 from .roles import model_for
 
 
@@ -120,6 +120,8 @@ def run(llm, sym, out_dir, capital=10_000, dry_run=False, only=None, deep=False,
         verdict, engine = judge(llm, sym, mtxt, st, mand, dry_run)
     except Exception as e:
         verdict, engine = {"verdict": "NO-GO", "decision": "no trade", "reasons": [f"judge failed: {str(e)[:300]}"]}, "failed"
+    # limits are frozen: keep only the fields the judge is allowed to return (no limit or kill-switch fields)
+    verdict = {k: x for k, x in verdict.items() if k in JUDGE_SCHEMA["properties"]}
     verdict = add_targets(verdict)
     calc = sizing(verdict, m, capital)
     rv, rreasons, factor = rules.check(verdict, calc, capital)
@@ -127,7 +129,16 @@ def run(llm, sym, out_dir, capital=10_000, dry_run=False, only=None, deep=False,
         for k in ("quantity", "position_usd", "position_pct_capital"):
             calc[k] *= factor
     final = rules.combine(rv, verdict.get("verdict", "NO-GO"))
-    lv, lres, lfactor, lnums = laws.check(verdict, calc, m, capital, sym)
+    com_txt = next((s["output"] for s in st if "ommittee" in s["stage"] and s["status"] == "ok" and s.get("output")), None)
+    hist = None
+    try:
+        from . import score
+        if (Path(out_dir) / "journal.csv").exists():
+            hist = score.history(score.resolve_all(Path(out_dir) / "journal.csv", data.daily_bars))
+    except Exception:
+        hist = None
+    lv, lres, lfactor, lnums = laws.check(verdict, calc, m, capital, sym, committee_text=com_txt,
+                                          plan_direction=plan.get("direction"), backtest_text=vibe.get("output", ""), history=hist)
     if calc and lfactor < 1:
         for k in ("quantity", "position_usd", "position_pct_capital"):
             calc[k] *= lfactor

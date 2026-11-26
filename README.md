@@ -19,7 +19,7 @@ gemini-tradingagents AAPL
  2. Hydrogen ─▶ Vibe-Trading        prices, fundamentals, news; backtests Neon's plan + walk-forward
  3. Argon    ─▶ committee           bull vs bear vs risk officer vs portfolio manager   (2 and 3 run at the same time)
  4. Carbon   ─▶ ADK judge           reads everything ─▶ GO / GO SMALLER / NO-GO + entry, stop, Target 1, Target 2
- 5. Python   ─▶ hard risk rules + 10 trading laws   only stricter ─▶ position size ─▶ optional Alpaca PAPER order
+ 5. Python   ─▶ hard risk rules + Jane Street rules   only stricter ─▶ position size ─▶ optional Alpaca PAPER order
 ```
 
 ## What it is built on
@@ -117,26 +117,37 @@ Checked in plain Python after the judge. The judge can be stricter, never looser
 | Daily loss limit | 2% | `GD_MAX_DAILY_LOSS_PCT` |
 | Kill switch | a file named `KILL` blocks every trade | `GD_KILL_SWITCH` |
 
-## Trading laws (Jane Street-inspired)
+## Jane Street rules inside
 
-After the hard rules, ten trading laws run in plain Python on every verdict. Like the hard rules, they can only block a trade or shrink it, never loosen it, and a missing answer counts as NO-GO.
+Inspired by Jane Street's public materials. Not affiliated with or endorsed by Jane Street. Jane Street offers no retail apps or accounts ([fraud and impersonation warnings](https://www.janestreet.com/fraud-and-impersonation-warnings/)).
 
-| Law | What the code checks | Source |
-|---|---|---|
-| Fail closed on bad data | entry, stop, targets, ATR14 present; last bar no older than 4 days | general practice; Jane Street's podcast *Signals and Threads* on data discipline |
-| Know why you trade | the judge must give a thesis and an invalidation | *The Laws of Trading*, law 1 |
-| Explain your edge in five sentences | edge field present, at most 5 sentences | law 5 |
-| Who is on the other side? | the judge must name the counterparty and why they trade with you | law 2 (adverse selection) |
-| Don't chase | entry no more than 1 ATR beyond the last close in the trade direction | law 2 |
-| Positive expected value after costs | EV in R from the judge's win probability minus a 0.05 humility margin, half out at Target 1 and half at Target 2, minus fees (10 bps) and slippage (0.1 ATR); EV <= 0 is NO-GO | Jane Street interview prep (expected value); law 7 |
-| Size by edge | quarter Kelly from the same numbers; if it allows less than the 1% rule, the size is cut; Kelly <= 0 is NO-GO | general practice |
-| Take only the risks you are paid for | any "unpaid risk" the judge lists (earnings, macro, unlock) halves the size | law 3 |
-| Stay small against volume | position <= 1% of 20-day average dollar volume | law 4 |
-| Survive a gap | a 2 ATR gap past the stop must cost <= 3% of capital, otherwise the size is cut | law 8 |
+Jane Street publishes no trading rulebook. The rules below come from its public materials (the [Probability & Markets guide](https://www.janestreet.com/static/pdfs/trading-interview.pdf), the podcast *Signals and Threads*, its tech blog), from *The Laws of Trading* (Wiley, 2019) by Agustin Lebron, a former Jane Street trader (quoted via [this review](https://www.astralcodexten.com/p/your-book-review-the-laws-of-trading)), and from standard math. Each one runs in plain Python after the judge. Like the hard rules, they can only block a trade or shrink it, never loosen it, and a missing answer counts as NO-GO. Several "half size" rules do not compound: the size is halved once.
 
-Every law, its result and its numbers go into the report. Each real run also appends one line to `reports/journal.csv` (verdicts, win probability, EV, size, which laws bit), so you can later check whether the judge's probabilities were calibrated. All thresholds are in `.env` (`GD_FEE_BPS`, `GD_SLIPPAGE_ATR`, `GD_P_MARGIN`, `GD_KELLY_FRACTION`, `GD_MAX_ENTRY_ATR`, `GD_MAX_ADV_PCT`, `GD_GAP_ATR`, `GD_MAX_GAP_LOSS_PCT`, `GD_MAX_DATA_AGE_DAYS`, `GD_UNPAID_RISK_CUT`, `GD_MAX_EDGE_SENTENCES`).
+| # | Rule | Source (exact quote, or "standard math") | What the code does |
+|---|---|---|---|
+| 1 | Fail closed on bad data | Jane Street, [Signals and Threads](https://signalsandthreads.com/finding-signal-in-the-noise/): "being sloppy with data science is fatal" | NO-GO if entry, stop, targets or ATR14 are missing, or the last bar is over 4 days old |
+| 2 | Know why you trade | Lebron (ex-Jane Street): "Know why you are doing a trade before you trade." | NO-GO without a thesis and an invalidation |
+| 3 | Explain your edge | Lebron: "If you can't explain your edge in five minutes, you don't have a very good one." | NO-GO without an edge, or with more than 5 sentences |
+| 4 | Who is on the other side? | Jane Street [guide](https://www.janestreet.com/static/pdfs/trading-interview.pdf): "Adverse selection is the idea that the trades you get to do are worse than they would appear" | NO-GO unless the judge names the counterparty and why they trade with you |
+| 5 | Two independent yeses | repo idea (pre-trade checks) | NO-GO if Neon's plan or the Argon committee points the other way; half size if the committee is neutral, split, missing, or has no real bear case (rubber stamp) |
+| 6 | Don't chase | Jane Street guide (adverse selection) | NO-GO if the entry is more than 1 ATR beyond the last close in the trade direction |
+| 7 | Cool off | repo idea (kill hierarchy) | NO-GO for 24 h after 3 losses in a row in the journal |
+| 8 | Keep score | standard math (Brier score, calibration) | after 20 resolved calls, the judge's probability is scaled by hit rate / predicted rate (only ever down) |
+| 9 | Positive expected value after costs | Jane Street guide: "If you know the expected value of something, you should be happy to buy for less or sell for more." Lebron: "If you think your costs are negligible relative to your edge, you're wrong about at least one of them." | EV in R from the judge's probability minus 0.05, half out at Target 1 and half at Target 2, minus fees (10 bps) and slippage (0.1 ATR); EV <= 0 is NO-GO |
+| 10 | Never pay above value | Jane Street guide (expected value above); idea from RasmusCodes/figgie-bot | NO-GO if a long's entry is above p x Target 1 + (1 - p) x stop (mirror for shorts) |
+| 11 | Size by edge | standard sizing math (Kelly/Thorp) | quarter Kelly; if it allows less than the 1% rule, the size is cut; Kelly <= 0 is NO-GO |
+| 12 | Take only paid risks | Lebron: "Take only the risks you're being paid to take. Hedge the others." | any unpaid risk the judge lists (earnings, macro, unlock) halves the size |
+| 13 | The model may remember the test period | Jane Street blog, [Mitigating memorization in LLMs](https://blog.janestreet.com/mitigating-memorization-in-llms/): "A model may perform well on a historical benchmark by consulting its memorized knowledge of past outcomes" | half size unless out-of-sample data runs past `GD_JS_MODEL_CUTOFF` (default 2026-01-01) |
+| 14 | Edges decay | standard practice | half size if the backtest's recent half earned under 50% of the older half, lost money, or was not reported |
+| 15 | Purged walk-forward | Jane Street blog, [Flex Model](https://blog.janestreet.com/flex-model-an-event-driven-feature-engineering-system/): "The same feature code ran live and in historical mode"; embargo idea from Kaggle Jane Street solutions | Hydrogen is asked for an embargo of max(lookback, holding period) bars between train and test; half size if it is shorter or not reported |
+| 16 | Use liquid instruments | Lebron: "Put on a risk using the most liquid instrument for that risk." | position <= 1% of 20-day average dollar volume |
+| 17 | Survive the unseen | Lebron: "Just because something has never happened doesn't mean it can't." | a 2 ATR gap past the stop must cost <= 3% of capital, otherwise the size is cut |
+| 18 | The AI never types the order | repo ideas (pre-trade checks; one order per symbol and side) | `--paper` refuses if any order field differs from the Python-validated plan, the endpoint is not paper-api.alpaca.markets, existing position + open orders + the new order exceed the 20% cap, or an open order on the same symbol and side exists |
+| 19 | Limits are frozen | repo idea (an agent may never raise limits) | limits come only from `.env`; any extra field in the judge's output is dropped, and the prompt says it may not propose changing limits or disabling the kill switch |
 
-Jane Street publishes no trading rulebook, and this project is not affiliated with Jane Street. The laws come from Jane Street's public material (its interview prep names probability, expected value and making markets; its podcast *Signals and Threads*), and from *The Laws of Trading* (Wiley, 2019) by Agustin Lebron, a former Jane Street trader. Rows marked "general practice" are standard risk management, not attributed to Jane Street. The prompts for Neon, Argon and Carbon ask the same questions (why, edge, other side, paid and unpaid risks, backtest hygiene) before Python checks the answers.
+Every rule, its result and its numbers go into the report. Each real run appends one line to `reports/journal.csv`. `gemini-tradingagents score` resolves past calls against later daily bars (Target 1 before the stop is a win, the stop first is a loss, both in one bar is a loss) and prints the hit rate, mean predicted probability, Brier score and a calibration table. Thresholds are in `.env`: `GD_FEE_BPS`, `GD_SLIPPAGE_ATR`, `GD_P_MARGIN`, `GD_KELLY_FRACTION`, `GD_MAX_ENTRY_ATR`, `GD_MAX_ADV_PCT`, `GD_GAP_ATR`, `GD_MAX_GAP_LOSS_PCT`, `GD_MAX_DATA_AGE_DAYS`, `GD_UNPAID_RISK_CUT`, `GD_HALF_CUT`, `GD_JS_MODEL_CUTOFF`, `GD_DECAY_RATIO`, `GD_MIN_RESOLVED`, `GD_COOLOFF_LOSSES`, `GD_COOLOFF_HOURS`.
+
+Ideas from (no code copied): [voyager67/JaneStreet-Agentic-Skills](https://github.com/voyager67/JaneStreet-Agentic-Skills) (Apache-2.0), [EnriqueKhai/JaneStreetETC22](https://github.com/EnriqueKhai/JaneStreetETC22) (BSD-3-Clause), [RasmusCodes/figgie-bot](https://github.com/RasmusCodes/figgie-bot) (MIT), [scaomath/kaggle-jane-street](https://github.com/scaomath/kaggle-jane-street) and [evgeniavolkova/kagglejanestreet](https://github.com/evgeniavolkova/kagglejanestreet) (no license; ideas only).
 
 ## Data and keys
 

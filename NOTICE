@@ -9,3 +9,12 @@ It installs and runs these projects as separate tools; no code from them is copi
 mandates/committee.yaml follows the mandate format of ai-hedge-fund's hedge_fund/fund/example.yaml (MIT).
 Design ideas (no code copied): google/adk-recipes financial-advisor sample (Apache-2.0),
 kweinmeister/agentic-trading (Apache-2.0), HKUDS/Vibe-Trading (MIT).
+
+Trading laws (gemini_tradingagents/laws.py, paper.py): ideas only, no code copied, from
+- voyager67/JaneStreet-Agentic-Skills (Apache-2.0): pre-trade checks, fail closed, frozen limits.
+- EnriqueKhai/JaneStreetETC22 (BSD-3-Clause): one order per symbol and side.
+- RasmusCodes/figgie-bot (MIT): never pay more than the expected value.
+- scaomath/kaggle-jane-street and evgeniavolkova/kagglejanestreet (no license given; ideas only): purged
+  walk-forward with an embargo.
+Quotes from Jane Street's public materials and from Agustin Lebron's The Laws of Trading (Wiley, 2019) are short
+citations for attribution. This project is not affiliated with or endorsed by Jane Street.

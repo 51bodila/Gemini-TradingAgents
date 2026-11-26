@@ -7,28 +7,39 @@ Where they come from (none of this is an official Jane Street document; Jane Str
 - The Laws of Trading (Wiley, 2019) by Agustin Lebron, a former Jane Street trader: know why you trade, adverse
   selection, take only paid risks, use the most liquid instrument, explain your edge in five minutes, costs are never
   negligible, what never happened can still happen.
-- General practice, labelled as such: fractional Kelly sizing, fail closed on missing or stale data, audit log.
-Ideas only; no code was copied from any project.
+- Jane Street's blog: "Mitigating memorization in LLMs" (Sep 2026) and "Flex Model" (Oct 2026).
+- Standard math, labelled as such: Kelly/Thorp sizing, Brier score.
+- Ideas (no code) from open-source projects: RasmusCodes/figgie-bot (MIT, pay at most value), scaomath/kaggle-jane-street
+  and evgeniavolkova/kagglejanestreet (purged walk-forward with an embargo).
+No code was copied from any project.
 """
 import csv
 import math
 import os
-from datetime import date, datetime, timezone
+import re
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 ORDER = {"NO-GO": 0, "GO SMALLER": 1, "GO": 2}
 
 LAWS = [
-    ("data", "Fail closed on bad data", "general practice; Signals and Threads (Jane Street podcast)"),
-    ("why", "Know why you trade before you trade", "Lebron, The Laws of Trading, law 1"),
-    ("edge", "Explain your edge in five sentences", "Lebron, law 5"),
-    ("other_side", "Ask who is on the other side (adverse selection)", "Lebron, law 2"),
-    ("chase", "Don't chase: entry within 1 ATR of the last close", "adverse selection, Lebron law 2"),
-    ("ev", "Positive expected value after costs", "Jane Street interview prep (expected value); Lebron law 7"),
-    ("kelly", "Size by edge: quarter Kelly, never above the 1% rule", "general practice"),
-    ("paid_risk", "Take only the risks you are paid for", "Lebron, law 3"),
-    ("liquidity", "Stay small against daily volume", "Lebron, law 4"),
-    ("tail", "Survive a gap through the stop", "Lebron, law 8"),
+    ("data", "Fail closed on bad data", "Jane Street, Signals and Threads: 'being sloppy with data science is fatal'"),
+    ("why", "Know why you trade before you trade", "Agustin Lebron, The Laws of Trading (ex-Jane Street)"),
+    ("edge", "Explain your edge in five sentences", "Agustin Lebron, The Laws of Trading (ex-Jane Street)"),
+    ("other_side", "Ask who is on the other side (adverse selection)", "Jane Street, Probability & Markets guide"),
+    ("two_yes", "Two independent yeses: Neon and the Argon committee agree", "repo idea (pre-trade checks)"),
+    ("chase", "Don't chase: entry within 1 ATR of the last close", "Jane Street guide (adverse selection)"),
+    ("cooloff", "Cool off after 3 losses in a row", "repo idea (kill hierarchy)"),
+    ("score", "Keep score: correct the judge's probability by its record", "standard math (Brier score, calibration)"),
+    ("ev", "Positive expected value after costs", "Jane Street guide (expected value); Agustin Lebron, The Laws of Trading (ex-Jane Street)"),
+    ("value", "Never pay above value", "Jane Street guide (expected value); RasmusCodes/figgie-bot idea"),
+    ("kelly", "Size by edge: quarter Kelly, never above the 1% rule", "standard sizing math (Kelly/Thorp)"),
+    ("paid_risk", "Take only the risks you are paid for", "Agustin Lebron, The Laws of Trading (ex-Jane Street)"),
+    ("memory", "The model may remember the test period", "Jane Street blog, Mitigating memorization in LLMs"),
+    ("decay", "Edges decay", "standard practice (out-of-sample decay)"),
+    ("embargo", "Purged walk-forward with an embargo", "kaggle-jane-street solutions (idea); Jane Street blog, Flex Model"),
+    ("liquidity", "Stay small against daily volume", "Agustin Lebron, The Laws of Trading (ex-Jane Street)"),
+    ("tail", "Survive a gap through the stop", "Agustin Lebron, The Laws of Trading (ex-Jane Street)"),
 ]
 
 
@@ -46,7 +57,46 @@ def mandate():
         "max_data_age_days": f("GD_MAX_DATA_AGE_DAYS", 4.0),
         "unpaid_risk_cut": f("GD_UNPAID_RISK_CUT", 0.5),   # size factor when the judge lists unpaid risks
         "max_edge_sentences": f("GD_MAX_EDGE_SENTENCES", 5.0),
+        "half_cut": f("GD_HALF_CUT", 0.5),                 # size factor for the 'half size' laws
+        "model_cutoff": os.environ.get("GD_JS_MODEL_CUTOFF", "2026-01-01"),
+        "decay_ratio": f("GD_DECAY_RATIO", 0.5),           # recent half must earn >= this share of the older half
+        "min_resolved": f("GD_MIN_RESOLVED", 20.0),        # resolved calls before the judge's p is corrected
+        "cooloff_losses": f("GD_COOLOFF_LOSSES", 3.0),
+        "cooloff_hours": f("GD_COOLOFF_HOURS", 24.0),
     }
+
+
+def committee_view(text):
+    """(direction, has_bear_case) from the committee's text. direction: long, short, neutral, split or unknown."""
+    t = (text or "").lower()
+    i = t.rfind("pm decision")
+    seg = t[i:i + 300] if i >= 0 else ""
+    if not seg:
+        d = "unknown"
+    elif "no trade" in seg or "flat" in seg or "neutral" in seg:
+        d = "neutral"
+    elif "long" in seg and "short" in seg:
+        d = "split"
+    elif "long" in seg or "buy" in seg:
+        d = "long"
+    elif "short" in seg or "sell" in seg:
+        d = "short"
+    else:
+        d = "unknown"
+    j = t.find("bear")
+    bear_words = len(re.findall(r"[a-z0-9%$.]+", t[j:j + 400])) if j >= 0 else 0
+    return d, bear_words >= 15
+
+
+def latest_date(text):
+    ds = re.findall(r"\b(20\d\d-\d\d-\d\d)\b", text or "")
+    out = []
+    for d in ds:
+        try:
+            out.append(date.fromisoformat(d))
+        except ValueError:
+            pass
+    return max(out) if out else None
 
 
 def _num(x):
@@ -69,9 +119,12 @@ def dollar_volume(symbol, m):
     return v if symbol.upper().endswith("-USD") else v * last
 
 
-def check(v, calc, m, capital, symbol="", today=None):
+def check(v, calc, m, capital, symbol="", today=None, committee_text=None, plan_direction=None, backtest_text="", history=None):
     """v: the judge's verdict (with target_1 / target_2), calc: sizing() output, m: data.metrics().
-    Returns (verdict, results, size_factor, numbers). results: list of {law, name, source, status, detail}."""
+    committee_text: the Argon committee's output (None = committee not run). plan_direction: Neon's direction.
+    backtest_text: Hydrogen's output. history: score.history() of earlier calls (None = no record yet).
+    Returns (verdict, results, size_factor, numbers). results: list of {law, name, source, status, detail}.
+    size_factor only ever shrinks the position; several 'half size' laws do not compound."""
     k = mandate()
     out, verdict, factor, nums = [], "GO", 1.0, {}
 
@@ -121,26 +174,70 @@ def check(v, calc, m, capital, symbol="", today=None):
     other = str(v.get("other_side") or "").strip()
     res("other_side", "pass" if other else "fail", other[:160] or "judge did not say who takes the other side")
 
+    # two independent yeses: Neon's plan and the Argon committee
+    opp = {"long": "short", "short": "long"}[v["decision"]]
+    if plan_direction == opp:
+        res("two_yes", "fail", f"Neon's plan is {plan_direction}, the judge wants {v['decision']}")
+    elif committee_text is None:
+        factor = min(factor, k["half_cut"])
+        res("two_yes", "cut", f"no committee ran: one yes only, size x{k['half_cut']:.2f}")
+    else:
+        cdir, bear = committee_view(committee_text)
+        nums["committee"] = cdir
+        if cdir == opp:
+            res("two_yes", "fail", f"the committee says {cdir}, the judge wants {v['decision']}")
+        elif cdir in ("neutral", "split", "unknown") or not bear:
+            factor = min(factor, k["half_cut"])
+            why = f"committee is {cdir}" if cdir != v["decision"] else "no real bear argument (rubber stamp)"
+            res("two_yes", "cut", f"{why}: size x{k['half_cut']:.2f}")
+        else:
+            res("two_yes", "pass", f"Neon {plan_direction or 'n/a'}, committee {cdir}, with a bear case on record")
+
     # 5. don't chase
     gap_atr = sg * (e - last) / atr
     nums["entry_vs_last_atr"] = gap_atr
     res("chase", "fail" if gap_atr > k["max_entry_atr"] else "pass",
         f"entry is {gap_atr:+.2f} ATR from the last close (max +{k['max_entry_atr']:.1f} in the trade direction)")
 
-    # 6. expected value after costs, in R
+    # cool-off and calibration from the journal
+    h = history or {}
+    td = today or datetime.now(timezone.utc).date()
+    last_loss = h.get("last_loss_date")
+    if h.get("loss_streak", 0) >= k["cooloff_losses"] and last_loss and (td - last_loss) <= timedelta(hours=k["cooloff_hours"]):
+        res("cooloff", "fail", f"{h['loss_streak']} losses in a row, the last on {last_loss}: no new trades for {k['cooloff_hours']:.0f}h")
+    else:
+        res("cooloff", "pass", f"loss streak {h.get('loss_streak', 0)}")
+
     cost = e * k["fee_bps"] / 10_000 + k["slippage_atr"] * atr
     cost_r = cost / R
     p_raw = _num(v.get("p_win"))
     if p_raw is None or not 0 < p_raw < 1:
         res("ev", "fail", "judge gave no win probability (p_win), so EV cannot be computed")
         return "NO-GO", out, 0.0, nums
-    p = max(0.0, p_raw - k["p_margin"])
+    p_cal = p_raw
+    n_res = h.get("resolved", 0)
+    if n_res >= k["min_resolved"] and h.get("mean_p"):
+        p_cal = min(0.99, max(0.01, p_raw * h["hit_rate"] / h["mean_p"]))
+        res("score", "pass" if p_cal >= p_raw else "cut",
+            f"{n_res} resolved calls: hit rate {h['hit_rate']:.2f} vs predicted {h['mean_p']:.2f}, Brier {h.get('brier', float('nan')):.3f}; "
+            f"judge p {p_raw:.2f} -> {p_cal:.2f}")
+        p_cal = min(p_cal, p_raw)  # the record may only lower the judge's probability
+    else:
+        res("score", "pass", f"{n_res} resolved calls (correction starts at {k['min_resolved']:.0f})")
+    p = max(0.0, p_cal - k["p_margin"])
     # half the position exits at T1 (1R), half at T2: average win in R
     win_r = 0.5 * abs(t1 - e) / R + 0.5 * abs(t2 - e) / R
     ev_r = p * win_r - (1 - p) * 1.0 - cost_r
     nums.update(p_win=p_raw, p_used=p, avg_win_r=win_r, cost_r=cost_r, ev_r=ev_r)
     res("ev", "pass" if ev_r > 0 else "fail",
-        f"EV {ev_r:+.2f}R = {p:.2f} x {win_r:.2f}R - {1 - p:.2f} x 1R - costs {cost_r:.2f}R (judge p {p_raw:.2f} minus {k['p_margin']:.2f})")
+        f"EV {ev_r:+.2f}R = {p:.2f} x {win_r:.2f}R - {1 - p:.2f} x 1R - costs {cost_r:.2f}R (judge p {p_raw:.2f}, used {p:.2f})")
+
+    # never pay above value: the entry must be no worse than p*T1 + (1-p)*stop
+    value = p * t1 + (1 - p) * s
+    nums["fair_value"] = value
+    bad = e > value if sg > 0 else e < value
+    res("value", "fail" if bad else "pass",
+        f"fair value {value:,.2f} = {p:.2f} x T1 + {1 - p:.2f} x stop; entry {e:,.2f} {'pays above it' if bad else 'is within it'}")
 
     # 7. quarter Kelly, capped by the 1% rule
     net_b = max(win_r - cost_r, 1e-9)
@@ -165,6 +262,44 @@ def check(v, calc, m, capital, symbol="", today=None):
         res("paid_risk", "cut", f"unpaid risks: {'; '.join(unpaid)[:160]} -> size x{k['unpaid_risk_cut']:.2f}")
     else:
         res("paid_risk", "pass", "judge listed no unpaid risks")
+
+    # the model may remember the test period
+    cutoff = date.fromisoformat(k["model_cutoff"])
+    oos = None
+    try:
+        oos = date.fromisoformat(str(v.get("oos_end"))[:10])
+    except ValueError:
+        pass
+    seen = latest_date(backtest_text)
+    last_oos = max([d for d in (oos, seen) if d], default=None)
+    if last_oos and last_oos > cutoff:
+        res("memory", "pass", f"out-of-sample data runs to {last_oos}, after the model cutoff {cutoff}")
+    else:
+        factor = min(factor, k["half_cut"])
+        res("memory", "cut", f"no out-of-sample data after the model cutoff {cutoff}: the model may remember this period, size x{k['half_cut']:.2f}")
+
+    # edges decay: the recent half of the backtest must keep at least half of the older half's return
+    rec, old = _num(v.get("backtest_recent_return")), _num(v.get("backtest_older_return"))
+    if rec is None or old is None:
+        factor = min(factor, k["half_cut"])
+        res("decay", "cut", f"backtest halves not reported: size x{k['half_cut']:.2f}")
+    elif rec <= 0 or (old > 0 and rec < k["decay_ratio"] * old):
+        factor = min(factor, k["half_cut"])
+        res("decay", "cut", f"recent half {rec:+.2%} vs older half {old:+.2%}: the edge is fading, size x{k['half_cut']:.2f}")
+    else:
+        res("decay", "pass", f"recent half {rec:+.2%} vs older half {old:+.2%}")
+
+    # purged walk-forward: embargo >= max(lookback, holding horizon) bars between train and test
+    emb, look, hor = _num(v.get("embargo_bars")), _num(v.get("max_lookback_bars")), _num(v.get("horizon_bars"))
+    need = max([x for x in (look, hor) if x is not None], default=None)
+    if emb is None or need is None:
+        factor = min(factor, k["half_cut"])
+        res("embargo", "cut", f"embargo or lookback not reported: size x{k['half_cut']:.2f}")
+    elif emb < need:
+        factor = min(factor, k["half_cut"])
+        res("embargo", "cut", f"embargo {emb:.0f} bars < needed {need:.0f}: train and test may overlap, size x{k['half_cut']:.2f}")
+    else:
+        res("embargo", "pass", f"embargo {emb:.0f} bars >= {need:.0f} (max of lookback and horizon)")
 
     qty = (calc or {}).get("quantity", 0) * factor
     # 9. liquidity

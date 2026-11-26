@@ -10,7 +10,9 @@ def _tmp():
     return tempfile.mkdtemp(prefix="gd-test-")
 
 LAWS_OK = {"p_win": 0.55, "thesis": "trend intact after the pullback", "edge": "Buyers defend SMA50. Sellers are late momentum shorts.",
-           "other_side": "late momentum shorts covering", "invalidation": "close below SMA50", "paid_risks": ["trend"], "unpaid_risks": []}
+           "other_side": "late momentum shorts covering", "invalidation": "close below SMA50", "paid_risks": ["trend"], "unpaid_risks": [],
+           "oos_end": "2026-11-20", "backtest_recent_return": 0.08, "backtest_older_return": 0.10, "embargo_bars": 60,
+           "max_lookback_bars": 50, "horizon_bars": 20}
 
 PLAN = {"direction": "long", "horizon": "4 weeks", "thesis": "trend intact", "invalidation": "close below SMA50",
         "strategies": [{"name": "sma_20_50", "rules": "long when SMA20 > SMA50"}], "key_risks": ["earnings"]}
@@ -38,7 +40,7 @@ def _patch(mp, seen):
         seen["vibe_plan"] = plan
         return {"stage": "vibe_trading", "status": "ok", "model": "m", "command": "c", "output": "vibe_trading says hi", "stderr": ""}
     mp.setattr(stages, "vibe_trading", vibe)
-    mp.setattr(stages, "committee", lambda sym, dry_run=False: {"stage": "committee", "status": "ok", "model": "m", "command": "c", "output": "committee says hi", "stderr": ""})
+    mp.setattr(stages, "committee", lambda sym, dry_run=False: {"stage": "committee", "status": "ok", "model": "m", "command": "c", "output": "committee says hi. BEAR: momentum is stretched, RSI near 70, volume fading on up days, a pullback to SMA50 would cost 4%. PM DECISION: long, size small", "stderr": ""})
     mp.setattr(stages, "trading_agents_raw", lambda q, dry_run=False: {"stage": "TradingAgents", "status": "not available", "model": "m", "command": "", "output": "", "stderr": "no wsl"})
     mp.setattr(stages, "has_aihf_data", lambda: False)
     mp.setattr(judge_mod, "judge", lambda llm, sym, mt, st, mand, dry_run=False: (judge_mod.parse_json(llm.ask("judge", "gemini-4-carbon", "", judge_mod._prompt(sym, mt, st, mand))), "fake"))

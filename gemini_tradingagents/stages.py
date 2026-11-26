@@ -59,16 +59,18 @@ def _run(name, cmd, env_extra, dry_run, cwd=None):
 
 
 # 1. Hydrogen -> Vibe-Trading -------------------------------------------------------------------------
+# Purged walk-forward (idea from the Kaggle Jane Street Market Prediction solutions; no code copied)
+EMBARGO = ("Leave an embargo gap of at least max(longest lookback, holding period) bars between every train and test window, and report: the embargo in bars, the longest lookback in bars, the holding period in bars, the last out-of-sample date, and the return of the recent half vs the older half of the test period. ")
 VIBE_PROMPT_FAST = ("Data pack for {sym}, keep it short. Load 1 year of daily prices; report last close, 20/60/250-day "
                     "returns, volatility and max drawdown. Backtest buy-and-hold plus the strategies in the PLAN below, with "
-                    "fees, and run a walk-forward check (3 windows); report CAGR, Sharpe, max drawdown and trade count for "
+                    "fees, and run a walk-forward check (3 windows). " + EMBARGO + "Report CAGR, Sharpe, max drawdown and trade count for "
                     "each. List up to 5 news headlines from the last 14 days with date and URL. Source and as-of date for "
                     "every number; only numbers your tools returned. Under 400 words.\n\nPLAN (from the desk's lead analyst)\n{plan}")
 VIBE_PROMPT = ("Build a data pack for {sym}. 1) Load 2 years of daily prices; report last close, 20/60/250-day returns, "
                "volatility, max drawdown. 2) Load the latest financial statements and key ratios (revenue, margins, EPS, "
                "debt, free cash flow) if the asset has them. 3) List news headlines from the last 14 days with date and URL. "
                "4) Backtest buy-and-hold and each strategy in the PLAN below with realistic fees; run walk-forward validation "
-               "(5 windows), a Monte Carlo test and a bootstrap Sharpe confidence interval; report CAGR, Sharpe, max "
+               "(5 windows), a Monte Carlo test and a bootstrap Sharpe confidence interval. " + EMBARGO + "Report CAGR, Sharpe, max "
                "drawdown, win rate and trade count for each. Give the source and as-of date for every number. "
                "Use only numbers your tools returned.\n\nPLAN (from the desk's lead analyst)\n{plan}")
 

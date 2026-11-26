@@ -41,3 +41,9 @@ def test_committee_429_is_reported(tmp_path, monkeypatch):
     monkeypatch.setattr(stages, "_run", fake_run)
     r = stages.committee("AAPL")
     assert r["status"] == "quota (429)" and "429" in r["stderr"]
+
+
+def test_cli_out_flag_before_a_command(tmp_path, capsys):
+    from gemini_tradingagents import cli
+    assert cli.main(["--out", str(tmp_path), "score"]) == 0
+    assert "No GO calls" in capsys.readouterr().out

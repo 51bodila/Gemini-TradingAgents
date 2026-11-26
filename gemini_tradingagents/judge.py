@@ -19,7 +19,10 @@ SCHEMA = {"type": "OBJECT", "properties": {
     "p_win": {"type": "NUMBER", "nullable": True}, "thesis": {"type": "STRING"}, "edge": {"type": "STRING"},
     "other_side": {"type": "STRING"}, "invalidation": {"type": "STRING"},
     "paid_risks": {"type": "ARRAY", "items": {"type": "STRING"}}, "unpaid_risks": {"type": "ARRAY", "items": {"type": "STRING"}},
-    "confidence": {"type": "STRING", "enum": ["low", "medium", "high"]}},
+    "confidence": {"type": "STRING", "enum": ["low", "medium", "high"]},
+    "oos_end": {"type": "STRING", "nullable": True}, "backtest_recent_return": {"type": "NUMBER", "nullable": True},
+    "backtest_older_return": {"type": "NUMBER", "nullable": True}, "embargo_bars": {"type": "NUMBER", "nullable": True},
+    "max_lookback_bars": {"type": "NUMBER", "nullable": True}, "horizon_bars": {"type": "NUMBER", "nullable": True}},
     "required": ["verdict", "decision", "reasons", "p_win", "thesis", "edge", "other_side", "invalidation", "unpaid_risks"]}
 
 INSTRUCTION = """You are the risk manager and final judge of a trading research desk. Three independent systems studied
@@ -43,8 +46,13 @@ Trading laws (checked again in Python after you; a missing field means NO-GO):
 - Data discipline: a backtest with under 30 trades, no costs, no out-of-sample or walk-forward window, or signals that
   use the same bar they trade, is not evidence. Say so in `reasons`.
 - What never happened can still happen: prefer liquid assets and stops that survive a gap.
+- Copy from the backtest output, or null if it is not there (never invent): `oos_end` (last out-of-sample date,
+  YYYY-MM-DD), `backtest_recent_return` and `backtest_older_return` (return of the recent and the older half, as
+  decimals), `embargo_bars`, `max_lookback_bars`, `horizon_bars`.
+- Limits are frozen: you may not propose changing risk limits or disabling the kill switch.
 Return JSON: verdict, decision, entry, stop, target, p_win, thesis, edge, other_side, invalidation, paid_risks,
-unpaid_risks, confidence, reasons (3-6, each citing a number and its source system), conflicts, fixes."""
+unpaid_risks, confidence, oos_end, backtest_recent_return, backtest_older_return, embargo_bars, max_lookback_bars,
+horizon_bars, reasons (3-6, each citing a number and its source system), conflicts, fixes."""
 
 
 def _prompt(sym, metrics_txt, stages, mandate):
