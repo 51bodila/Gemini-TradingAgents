@@ -133,7 +133,7 @@ Yahoo Finance data is for personal use. gemini-tradingagents fetches data at run
 Every run also writes `reports/<TICKER>_<time>.pine`, a Pine Script v6 indicator with that run's entry, stop, Target 1, Target 2, verdict and panel filled in:
 
 1. Open TradingView and the Pine Editor (bottom panel).
-2. Paste the contents of `reports/<TICKER>_<time>.pine`.
+2. Paste the whole `reports/<TICKER>_<time>.pine` file.
 3. Click **Add to chart**.
 
 It draws the levels with price tags, a RISK 1R box and a REWARD box from the signal bar, a LONG / SHORT label and a verdict panel. `gemini_tradingagents/pine_template.pine` is the same script with blank levels: paste it and type your own levels in the indicator settings.
