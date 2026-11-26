@@ -136,7 +136,7 @@ Every run also writes `reports/<TICKER>_<time>.pine`, a Pine Script v6 indicator
 2. Paste the contents of `reports/<TICKER>_<time>.pine`.
 3. Click **Add to chart**.
 
-It draws the levels with price tags, a RISK 1R box and a REWARD box from the signal bar, a LONG / SHORT label and a verdict panel. `tradingview/gemini_tradingagents.pine` is the same script with blank levels: type your own in the indicator settings.
+It draws the levels with price tags, a RISK 1R box and a REWARD box from the signal bar, a LONG / SHORT label and a verdict panel. `gemini_tradingagents/pine_template.pine` is the same script with blank levels: paste it and type your own levels in the indicator settings.
 
 ## Paper trading
 
