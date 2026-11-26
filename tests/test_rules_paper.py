@@ -40,6 +40,7 @@ def test_paper_orders_two_targets():
 
 
 def test_one_percent_risk_and_twenty_percent_cap():
+    assert rules.mandate()["max_risk_pct"] == 1.0 and rules.mandate()["max_position_pct"] == 20.0   # the defaults
     m = {"atr14": 2.0, "last_close": 100.0}
     c = desk.sizing({"decision": "long", "entry": 100, "stop": 95, "target": 112.5}, m, 10_000)
     assert abs(c["risk_usd"] - 100) < 1e-9 and abs(c["quantity"] - 20) < 1e-9          # 1% of $10,000 lost at the stop
