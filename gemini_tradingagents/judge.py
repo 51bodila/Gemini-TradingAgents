@@ -15,7 +15,12 @@ SCHEMA = {"type": "OBJECT", "properties": {
     "decision": {"type": "STRING", "enum": ["long", "short", "no trade"]},
     "entry": {"type": "NUMBER", "nullable": True}, "stop": {"type": "NUMBER", "nullable": True}, "target": {"type": "NUMBER", "nullable": True},
     "reasons": {"type": "ARRAY", "items": {"type": "STRING"}}, "conflicts": {"type": "ARRAY", "items": {"type": "STRING"}},
-    "fixes": {"type": "ARRAY", "items": {"type": "STRING"}}}, "required": ["verdict", "decision", "reasons"]}
+    "fixes": {"type": "ARRAY", "items": {"type": "STRING"}},
+    "p_win": {"type": "NUMBER", "nullable": True}, "thesis": {"type": "STRING"}, "edge": {"type": "STRING"},
+    "other_side": {"type": "STRING"}, "invalidation": {"type": "STRING"},
+    "paid_risks": {"type": "ARRAY", "items": {"type": "STRING"}}, "unpaid_risks": {"type": "ARRAY", "items": {"type": "STRING"}},
+    "confidence": {"type": "STRING", "enum": ["low", "medium", "high"]}},
+    "required": ["verdict", "decision", "reasons", "p_win", "thesis", "edge", "other_side", "invalidation", "unpaid_risks"]}
 
 INSTRUCTION = """You are the risk manager and final judge of a trading research desk. Three independent systems studied
 the same asset: Vibe-Trading (backtests and validation), ai-hedge-fund (an investor committee) and TradingAgents (deep
@@ -26,8 +31,20 @@ Decide ONE target position or no trade. Rules:
 - A backtest that fails its walk-forward or Monte Carlo check is a reason for NO-GO.
 - The stop must sit beyond normal noise (compare with ATR14) and reward:risk must be at least the rule minimum.
 - Hard rules are binding: you may be stricter, never looser.
-Return JSON: verdict, decision, entry, stop, target, reasons (3-6, each citing a number and its source system),
-conflicts, fixes."""
+Trading laws (checked again in Python after you; a missing field means NO-GO):
+- Know why you trade: `thesis` in one or two sentences and `invalidation`, the price or event that proves it wrong.
+- Explain the edge in at most five sentences (`edge`). A backtest or a model is not an edge; say why the market is wrong.
+- Adverse selection: `other_side` says who is selling to you (or buying from you) and why they are willing to.
+  If the answer is "someone who knows more", do not trade.
+- `p_win`: your calibrated probability (0-1) that Target 1 is hit before the stop. Most real edges are 0.40-0.60.
+  Python subtracts a humility margin and requires positive expected value after fees and slippage.
+- Take only the risks you are paid for: list them in `paid_risks`; anything else that could hit the trade (earnings,
+  macro event, unlock, gap risk) goes in `unpaid_risks`. Each unpaid risk halves the size.
+- Data discipline: a backtest with under 30 trades, no costs, no out-of-sample or walk-forward window, or signals that
+  use the same bar they trade, is not evidence. Say so in `reasons`.
+- What never happened can still happen: prefer liquid assets and stops that survive a gap.
+Return JSON: verdict, decision, entry, stop, target, p_win, thesis, edge, other_side, invalidation, paid_risks,
+unpaid_risks, confidence, reasons (3-6, each citing a number and its source system), conflicts, fixes."""
 
 
 def _prompt(sym, metrics_txt, stages, mandate):

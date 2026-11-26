@@ -110,6 +110,9 @@ def main(argv=None):
         if o:
             print(f"{o['side'].upper()} {o['qty']} {o['symbol']} · entry {o['entry']} · stop {o['stop']} · Target 1 {o['target_1']} · Target 2 {o['target_2']}")
         print(f"Report: {path}")
+        if not args.dry_run:
+            from .laws import journal
+            journal(out / "journal.csv", r)
         from .pine import write as write_pine
         pine_path = write_pine(r, out, stamp + ("-dryrun" if args.dry_run else ""))
         print(f"TradingView: open Pine Editor, paste {pine_path}, click Add to chart")

@@ -29,11 +29,14 @@ Free price snapshot computed by Python from Yahoo Finance:
 {snapshot}
 
 Write the desk's working thesis for the next 2-6 weeks and a TEST PLAN that a backtester will run on daily data.
-Pick 2-3 simple, mechanical strategies that would prove or disprove the thesis (exact rules: indicators, periods,
+First say WHY you would trade at all and what the edge is, in at most five sentences, and who would be on the
+other side of the trade. Then pick 2-3 simple, mechanical strategies that would prove or disprove the thesis (exact rules: indicators, periods,
 entry, exit). Name the key risks and what would prove the thesis wrong. Use only the numbers above or your own tool
 results; do not invent prices.
-End your answer with one JSON object with keys: direction (long|short|neutral), horizon, thesis, strategies
-(list of {{name, rules}}), key_risks (list), invalidation."""
+Backtests must include fees, at least 30 trades, and a walk-forward window; signals may only use data available
+before the bar they trade.
+End your answer with one JSON object with keys: direction (long|short|neutral), horizon, thesis, edge, other_side,
+strategies (list of {{name, rules}}), key_risks (list), invalidation."""
 
 
 def _json_tail(text):

@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 
 from pathlib import Path
 
-from . import brain, data, rules, stages
+from . import brain, data, laws, rules, stages
 from .judge import judge
 from .roles import model_for
 
@@ -63,7 +63,8 @@ def data_pack(sym, mtxt, vibe, out_dir, stamp, plan_txt=""):
 DEBATE = """You are an investment committee in one pass: a bull advocate, a bear advocate, a risk officer and a
 portfolio manager. Asset: {sym}. Debate the lead analyst's thesis against the data pack. Use only numbers in the pack.
 Write: BULL (3 points), BEAR (3 points), RISK (3 points with numbers), PM DECISION (long / short / no trade, size
-small / normal / none, and why). Under 350 words.
+small / normal / none, and why). The risk officer must answer: who is on the other side of this trade and why,
+which risks are we paid for and which are not, and what happens if price gaps through the stop. Under 400 words.
 
 LEAD ANALYST PLAN
 {plan}
@@ -126,6 +127,11 @@ def run(llm, sym, out_dir, capital=10_000, dry_run=False, only=None, deep=False,
         for k in ("quantity", "position_usd", "position_pct_capital"):
             calc[k] *= factor
     final = rules.combine(rv, verdict.get("verdict", "NO-GO"))
+    lv, lres, lfactor, lnums = laws.check(verdict, calc, m, capital, sym)
+    if calc and lfactor < 1:
+        for k in ("quantity", "position_usd", "position_pct_capital"):
+            calc[k] *= lfactor
+    final = laws.combine(final, lv)
     order = None
     if final in ("GO", "GO SMALLER") and calc:
         order = {"symbol": sym, "side": "buy" if verdict["decision"] == "long" else "sell", "qty": round(calc["quantity"], 6),
@@ -133,7 +139,16 @@ def run(llm, sym, out_dir, capital=10_000, dry_run=False, only=None, deep=False,
                  "target": verdict["target_2"], "verdict": final}
     return {"plan_txt": ptxt, "symbol": sym, "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "metrics_txt": mtxt,
             "stages": st, "judge": verdict, "judge_engine": engine, "calc": calc,
-            "rules": {"verdict": rv, "reasons": rreasons, "size_factor": factor}, "final": final, "order": order}
+            "rules": {"verdict": rv, "reasons": rreasons, "size_factor": factor},
+            "laws": {"verdict": lv, "results": lres, "size_factor": lfactor, "numbers": lnums}, "final": final, "order": order}
+
+
+def laws_table(r):
+    rows = (r.get("laws") or {}).get("results") or []
+    if not rows:
+        return "- (not checked)"
+    icon = {"pass": "pass", "cut": "SIZE CUT", "fail": "FAIL"}
+    return "\n".join(f"- {icon[x['status']]} · {x['name']}: {x['detail']} ({x['source']})" for x in rows)
 
 
 def report_md(r, usage_table):
@@ -155,6 +170,9 @@ Command: `{s['command'] or '(not run)'}`
 ## Final verdict: **{r['final']}**
 Hard rules (Python): **{r['rules']['verdict']}**
 {b(r['rules']['reasons'])}
+
+Trading laws (Python): **{(r.get('laws') or {}).get('verdict', 'n/a')}**
+{laws_table(r)}
 
 Judge ({model_for('judge')}, {r['judge_engine']}): **{j.get('verdict', 'n/a')}**, {j.get('decision', 'n/a')} · entry {j.get('entry')} · stop {j.get('stop')} · Target 1 {j.get('target_1')} · Target 2 {j.get('target_2')}
 {b(j.get('reasons'))}

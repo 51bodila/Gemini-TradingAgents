@@ -19,7 +19,7 @@ gemini-tradingagents AAPL
  2. Hydrogen ─▶ Vibe-Trading        prices, fundamentals, news; backtests Neon's plan + walk-forward
  3. Argon    ─▶ committee           bull vs bear vs risk officer vs portfolio manager   (2 and 3 run at the same time)
  4. Carbon   ─▶ ADK judge           reads everything ─▶ GO / GO SMALLER / NO-GO + entry, stop, Target 1, Target 2
- 5. Python   ─▶ hard risk rules     can only make the verdict stricter ─▶ position size ─▶ optional Alpaca PAPER order
+ 5. Python   ─▶ hard risk rules + 10 trading laws   only stricter ─▶ position size ─▶ optional Alpaca PAPER order
 ```
 
 ## What it is built on
@@ -116,6 +116,27 @@ Checked in plain Python after the judge. The judge can be stricter, never looser
 | Entry no further from last close | 3% | `GD_MAX_ENTRY_GAP_PCT` |
 | Daily loss limit | 2% | `GD_MAX_DAILY_LOSS_PCT` |
 | Kill switch | a file named `KILL` blocks every trade | `GD_KILL_SWITCH` |
+
+## Trading laws (Jane Street-inspired)
+
+After the hard rules, ten trading laws run in plain Python on every verdict. Like the hard rules, they can only block a trade or shrink it, never loosen it, and a missing answer counts as NO-GO.
+
+| Law | What the code checks | Source |
+|---|---|---|
+| Fail closed on bad data | entry, stop, targets, ATR14 present; last bar no older than 4 days | general practice; Jane Street's podcast *Signals and Threads* on data discipline |
+| Know why you trade | the judge must give a thesis and an invalidation | *The Laws of Trading*, law 1 |
+| Explain your edge in five sentences | edge field present, at most 5 sentences | law 5 |
+| Who is on the other side? | the judge must name the counterparty and why they trade with you | law 2 (adverse selection) |
+| Don't chase | entry no more than 1 ATR beyond the last close in the trade direction | law 2 |
+| Positive expected value after costs | EV in R from the judge's win probability minus a 0.05 humility margin, half out at Target 1 and half at Target 2, minus fees (10 bps) and slippage (0.1 ATR); EV <= 0 is NO-GO | Jane Street interview prep (expected value); law 7 |
+| Size by edge | quarter Kelly from the same numbers; if it allows less than the 1% rule, the size is cut; Kelly <= 0 is NO-GO | general practice |
+| Take only the risks you are paid for | any "unpaid risk" the judge lists (earnings, macro, unlock) halves the size | law 3 |
+| Stay small against volume | position <= 1% of 20-day average dollar volume | law 4 |
+| Survive a gap | a 2 ATR gap past the stop must cost <= 3% of capital, otherwise the size is cut | law 8 |
+
+Every law, its result and its numbers go into the report. Each real run also appends one line to `reports/journal.csv` (verdicts, win probability, EV, size, which laws bit), so you can later check whether the judge's probabilities were calibrated. All thresholds are in `.env` (`GD_FEE_BPS`, `GD_SLIPPAGE_ATR`, `GD_P_MARGIN`, `GD_KELLY_FRACTION`, `GD_MAX_ENTRY_ATR`, `GD_MAX_ADV_PCT`, `GD_GAP_ATR`, `GD_MAX_GAP_LOSS_PCT`, `GD_MAX_DATA_AGE_DAYS`, `GD_UNPAID_RISK_CUT`, `GD_MAX_EDGE_SENTENCES`).
+
+Jane Street publishes no trading rulebook, and this project is not affiliated with Jane Street. The laws come from Jane Street's public material (its interview prep names probability, expected value and making markets; its podcast *Signals and Threads*), and from *The Laws of Trading* (Wiley, 2019) by Agustin Lebron, a former Jane Street trader. Rows marked "general practice" are standard risk management, not attributed to Jane Street. The prompts for Neon, Argon and Carbon ask the same questions (why, edge, other side, paid and unpaid risks, backtest hygiene) before Python checks the answers.
 
 ## Data and keys
 

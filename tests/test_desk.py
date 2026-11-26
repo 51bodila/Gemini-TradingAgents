@@ -9,6 +9,9 @@ import tempfile
 def _tmp():
     return tempfile.mkdtemp(prefix="gd-test-")
 
+LAWS_OK = {"p_win": 0.55, "thesis": "trend intact after the pullback", "edge": "Buyers defend SMA50. Sellers are late momentum shorts.",
+           "other_side": "late momentum shorts covering", "invalidation": "close below SMA50", "paid_risks": ["trend"], "unpaid_risks": []}
+
 PLAN = {"direction": "long", "horizon": "4 weeks", "thesis": "trend intact", "invalidation": "close below SMA50",
         "strategies": [{"name": "sma_20_50", "rules": "long when SMA20 > SMA50"}], "key_risks": ["earnings"]}
 
@@ -27,7 +30,8 @@ class FakeLLM:
 
 
 def _patch(mp, seen):
-    bars = [(f"2026-01-{(i % 28) + 1:02d}", 90 + i * .1, 91 + i * .1, 89 + i * .1, 90 + i * .1, 1000.0) for i in range(300)]
+    bars = [(f"2026-01-{(i % 28) + 1:02d}", 90 + i * .1, 91 + i * .1, 89 + i * .1, 90 + i * .1, 1e7) for i in range(300)]
+    mp.setenv("GD_MAX_DATA_AGE_DAYS", "100000")   # fake bars are dated January
     mp.setattr(data, "daily_bars", lambda s, days=400: bars)
 
     def vibe(sym, dry_run=False, deep=False, plan="", iters=None):
@@ -44,7 +48,7 @@ def _patch(mp, seen):
 def test_go_smaller(monkeypatch, tmp_path=None):
     seen = {}
     _patch(monkeypatch, seen)
-    llm = FakeLLM({"verdict": "GO", "decision": "long", "entry": 119.9, "stop": 114.9, "target": 132.4, "reasons": ["r"]})
+    llm = FakeLLM({"verdict": "GO", "decision": "long", "entry": 119.9, "stop": 114.9, "target": 132.4, "reasons": ["r"], **LAWS_OK})
     r = desk.run(llm, "TEST", str(_tmp()), capital=10_000)
     assert [c[0] for c in llm.calls] == ["brain", "judge"]                 # Neon first, Carbon last
     assert "sma_20_50" in seen["vibe_plan"] and "trend intact" in seen["vibe_plan"]   # Hydrogen backtests Neon's plan
@@ -70,7 +74,7 @@ def test_neon_fails_default_plan(monkeypatch):
 
 def test_rules_override_model(monkeypatch):
     _patch(monkeypatch, {})
-    llm = FakeLLM({"verdict": "GO", "decision": "long", "entry": 119.9, "stop": 119.5, "target": 130, "reasons": ["r"]})
+    llm = FakeLLM({"verdict": "GO", "decision": "long", "entry": 119.9, "stop": 119.5, "target": 130, "reasons": ["r"], **LAWS_OK})
     r = desk.run(llm, "TEST", str(_tmp()), capital=10_000)
     assert r["final"] == "NO-GO" and r["order"] is None   # stop 0.4 away < 0.5 ATR: rules win over the model's GO
 
@@ -95,7 +99,7 @@ def test_target2_fallback_when_judge_gives_none():
 def test_tradingview_script_has_the_levels(monkeypatch):
     from gemini_tradingagents import pine
     _patch(monkeypatch, {})
-    llm = FakeLLM({"verdict": "GO", "decision": "long", "entry": 119.9, "stop": 114.9, "target": 132.4, "reasons": ["r"]})
+    llm = FakeLLM({"verdict": "GO", "decision": "long", "entry": 119.9, "stop": 114.9, "target": 132.4, "reasons": ["r"], **LAWS_OK})
     r = desk.run(llm, "TEST", str(_tmp()), capital=10_000)
     p = pine.write(r, _tmp(), "20260101-0000")
     s = p.read_text(encoding="utf-8")
