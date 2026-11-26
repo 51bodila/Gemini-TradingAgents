@@ -1,7 +1,7 @@
 """Hard rules and paper-order building, offline."""
 import json
 import os
-from gemini_tradingagents import rules, paper
+from gemini_tradingagents import desk, rules, paper
 
 
 def plan(e=100, s=95, t=112.5, d="long"):
@@ -37,3 +37,15 @@ def test_paper_orders_two_targets():
     assert len(one) == 1 and one[0]["take_profit"]["limit_price"] == "383.10"      # 1 share: single bracket to Target 2
     assert paper.build_orders({**o, "qty": .4})[0] is None
     assert "paper-api.alpaca.markets" in paper.PAPER_ORDERS_URL and "api.alpaca.markets" not in paper.PAPER_ORDERS_URL.replace("paper-api.", "")
+
+
+def test_one_percent_risk_and_twenty_percent_cap():
+    m = {"atr14": 2.0, "last_close": 100.0}
+    c = desk.sizing({"decision": "long", "entry": 100, "stop": 95, "target": 112.5}, m, 10_000)
+    assert abs(c["risk_usd"] - 100) < 1e-9 and abs(c["quantity"] - 20) < 1e-9          # 1% of $10,000 lost at the stop
+    assert rules.check({"decision": "long", "entry": 100, "stop": 95, "target": 112.5}, c, 10_000)[0] == "GO"   # exactly 20%: allowed
+    tight = {"decision": "long", "entry": 100, "stop": 99, "target": 102.5}
+    c = desk.sizing(tight, m, 10_000)                                                       # 100 shares = 100% of capital
+    v, _, f = rules.check(tight, c, 10_000)
+    assert v == "GO SMALLER" and abs(c["quantity"] * f * 100 / 10_000 - 0.20) < 1e-9       # cut to the 20% cap
+    assert c["quantity"] * f * (100 - 99) <= 100                                            # still never more than 1% at risk
