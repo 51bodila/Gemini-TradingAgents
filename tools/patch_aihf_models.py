@@ -1,4 +1,7 @@
-"""Add the four Gemini 4 models to ai-hedge-fund's model list.
+"""Helper for the one install script (install.ps1 / install.sh), which sets up all 3 trading repos
+(TradingAgents, Vibe-Trading, Google ADK) plus the optional ai-hedge-fund plugin, each in its own environment.
+
+Add the four Gemini 4 models to ai-hedge-fund's model list.
 
 aihf routes any model id that is not in hedge_fund/llm/api_models.json to Anthropic, so gemini-4-* ids must be listed
 with provider "Google". This edits the installed copy only; run again after upgrading aihf.
