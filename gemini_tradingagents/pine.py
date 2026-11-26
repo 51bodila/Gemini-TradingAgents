@@ -2,7 +2,7 @@
 
 Paste it into TradingView's Pine Editor and click "Add to chart". It draws entry, stop, Target 1 and Target 2 with price
 tags, a RISK 1R box and a REWARD box from the signal bar, a LONG/SHORT label and a panel with the verdict.
-tradingview/gemini_tradingagents.pine is the same script with neutral defaults, for typing levels in by hand.
+gemini_tradingagents/pine_template.pine is the same script with neutral defaults, for typing levels in by hand.
 """
 import re
 from datetime import datetime, timezone
@@ -108,7 +108,7 @@ def render(v, when=None):
 
 
 def generic():
-    """The hand-edit template in tradingview/: neutral defaults, every value is an input."""
+    """The hand-edit template gemini_tradingagents/pine_template.pine: neutral defaults, every value is an input."""
     return render({"note": "Template: type your own levels in the indicator settings.", "symbol": "TICKER", "side": "long", "verdict": "GO",
                    "entry": 100, "stop": 95, "t1": 105, "t2": 112.5, "regime": "n/a", "thesis": "n/a", "backtest": "n/a",
                    "committee": "n/a", "rules": "1% risk, 20% cap", "size": "n/a"}, datetime(2026, 1, 1, tzinfo=timezone.utc))

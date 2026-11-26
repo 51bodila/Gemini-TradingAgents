@@ -111,4 +111,4 @@ def test_tradingview_script_dry_run_and_template():
     from gemini_tradingagents import pine
     s = pine.render(pine.from_run({"symbol": "BTC-USD", "final": "NO-GO", "judge": {"verdict": "NO-GO", "decision": "no trade"}, "stages": [], "order": None}))
     assert 'input.string("none", "Side"' in s and 'input.string("NO-GO", "Verdict"' in s and "{{" not in s
-    assert (Path(__file__).parent.parent / "tradingview" / "gemini_tradingagents.pine").read_text(encoding="utf-8") == pine.generic()
+    assert (Path(pine.__file__).parent / "pine_template.pine").read_text(encoding="utf-8") == pine.generic()
