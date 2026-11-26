@@ -4,7 +4,7 @@ only make a verdict stricter (NO-GO, or a smaller size), never looser.
 Where they come from (none of this is an official Jane Street document; Jane Street publishes no trading rulebook):
 - Jane Street's public material: its interview prep names probability, expected value and making markets; its podcast
   Signals and Threads stresses data discipline ("being sloppy with data science is fatal").
-- The Laws of Trading (Wiley, 2019) by Agustin Lebron, a former Jane Street trader: know why you trade, adverse
+- The Laws of Trading (Wiley, 2019) by Agustin Lebron, a former Jane Street trader (paraphrased): know why you trade, adverse
   selection, take only paid risks, use the most liquid instrument, explain your edge in five minutes, costs are never
   negligible, what never happened can still happen.
 - Jane Street's blog: "Mitigating memorization in LLMs" (Sep 2026) and "Flex Model" (Oct 2026).
@@ -24,22 +24,22 @@ ORDER = {"NO-GO": 0, "GO SMALLER": 1, "GO": 2}
 
 LAWS = [
     ("data", "Fail closed on bad data", "Jane Street, Signals and Threads: 'being sloppy with data science is fatal'"),
-    ("why", "Know why you trade before you trade", "Agustin Lebron, The Laws of Trading (ex-Jane Street)"),
-    ("edge", "Explain your edge in five sentences", "Agustin Lebron, The Laws of Trading (ex-Jane Street)"),
+    ("why", "Know why you trade before you trade", "paraphrased from Agustin Lebron, The Laws of Trading, 2019 (ex-Jane Street)"),
+    ("edge", "Explain your edge in five sentences", "paraphrased from Agustin Lebron, The Laws of Trading, 2019 (ex-Jane Street)"),
     ("other_side", "Ask who is on the other side (adverse selection)", "Jane Street, Probability & Markets guide"),
     ("two_yes", "Two independent yeses: Neon and the Argon committee agree", "repo idea (pre-trade checks)"),
     ("chase", "Don't chase: entry within 1 ATR of the last close", "Jane Street guide (adverse selection)"),
     ("cooloff", "Cool off after 3 losses in a row", "repo idea (kill hierarchy)"),
     ("score", "Keep score: correct the judge's probability by its record", "standard math (Brier score, calibration)"),
-    ("ev", "Positive expected value after costs", "Jane Street guide (expected value); Agustin Lebron, The Laws of Trading (ex-Jane Street)"),
+    ("ev", "Positive expected value after costs", "Jane Street guide (expected value); paraphrased from Agustin Lebron, The Laws of Trading, 2019 (ex-Jane Street)"),
     ("value", "Never pay above value", "Jane Street guide (expected value); RasmusCodes/figgie-bot idea"),
     ("kelly", "Size by edge: quarter Kelly, never above the 1% rule", "standard sizing math (Kelly/Thorp)"),
-    ("paid_risk", "Take only the risks you are paid for", "Agustin Lebron, The Laws of Trading (ex-Jane Street)"),
+    ("paid_risk", "Take only the risks you are paid for", "paraphrased from Agustin Lebron, The Laws of Trading, 2019 (ex-Jane Street)"),
     ("memory", "The model may remember the test period", "Jane Street blog, Mitigating memorization in LLMs"),
     ("decay", "Edges decay", "standard practice (out-of-sample decay)"),
     ("embargo", "Purged walk-forward with an embargo", "kaggle-jane-street solutions (idea); Jane Street blog, Flex Model"),
-    ("liquidity", "Stay small against daily volume", "Agustin Lebron, The Laws of Trading (ex-Jane Street)"),
-    ("tail", "Survive a gap through the stop", "Agustin Lebron, The Laws of Trading (ex-Jane Street)"),
+    ("liquidity", "Stay small against daily volume", "paraphrased from Agustin Lebron, The Laws of Trading, 2019 (ex-Jane Street)"),
+    ("tail", "Survive a gap through the stop", "paraphrased from Agustin Lebron, The Laws of Trading, 2019 (ex-Jane Street)"),
 ]
 
 
