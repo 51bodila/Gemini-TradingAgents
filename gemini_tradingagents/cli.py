@@ -110,6 +110,9 @@ def main(argv=None):
         if o:
             print(f"{o['side'].upper()} {o['qty']} {o['symbol']} · entry {o['entry']} · stop {o['stop']} · Target 1 {o['target_1']} · Target 2 {o['target_2']}")
         print(f"Report: {path}")
+        from .pine import write as write_pine
+        pine_path = write_pine(r, out, stamp + ("-dryrun" if args.dry_run else ""))
+        print(f"TradingView: open Pine Editor, paste {pine_path}, click Add to chart")
         return 0
     sub = ap.add_subparsers(dest="cmd", required=True)
     a = sub.add_parser("audit", help="second opinion on a strategy's code and backtest report (Neon finds, Carbon confirms)")

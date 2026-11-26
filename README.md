@@ -126,6 +126,16 @@ Checked in plain Python after the judge. The judge can be stricter, never looser
 
 Yahoo Finance data is for personal use. gemini-tradingagents fetches data at run time and never stores or redistributes it (`reports/` and caches are git-ignored).
 
+## See it on TradingView
+
+Every run also writes `reports/<TICKER>_<time>.pine`, a Pine Script v6 indicator with that run's entry, stop, Target 1, Target 2, verdict and panel filled in:
+
+1. Open TradingView and the Pine Editor (bottom panel).
+2. Paste the contents of `reports/<TICKER>_<time>.pine`.
+3. Click **Add to chart**.
+
+It draws the levels with price tags, a RISK 1R box and a REWARD box from the signal bar, a LONG / SHORT label and a verdict panel. `tradingview/gemini_tradingagents.pine` is the same script with blank levels: type your own in the indicator settings.
+
 ## Paper trading
 
 `--paper` turns the target position into Alpaca bracket orders: limit entry, stop-loss, whole shares; half the shares take profit at Target 1, the rest at Target 2 (one share: a single bracket to Target 2). It prints by default. `--send` posts it to `https://paper-api.alpaca.markets` with `ALPACA_KEY` / `ALPACA_SECRET` from an Alpaca paper account (no deposit needed). The code contains no live-trading endpoint. It refuses dry-run results and NO-GO verdicts. Stocks only.

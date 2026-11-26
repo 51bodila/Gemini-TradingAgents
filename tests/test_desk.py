@@ -90,3 +90,25 @@ def test_fast_mode_one_argon_call(monkeypatch):
 def test_target2_fallback_when_judge_gives_none():
     v = desk.add_targets({"decision": "short", "entry": 100.0, "stop": 104.0})
     assert v["target_1"] == 96.0 and v["target_2"] == 90.0 and v["target"] == 90.0   # 2.5R fallback, rules check Target 2
+
+
+def test_tradingview_script_has_the_levels(monkeypatch):
+    from gemini_tradingagents import pine
+    _patch(monkeypatch, {})
+    llm = FakeLLM({"verdict": "GO", "decision": "long", "entry": 119.9, "stop": 114.9, "target": 132.4, "reasons": ["r"]})
+    r = desk.run(llm, "TEST", str(_tmp()), capital=10_000)
+    p = pine.write(r, _tmp(), "20260101-0000")
+    s = p.read_text(encoding="utf-8")
+    assert s.startswith("//@version=6") and 'indicator("Gemini TradingAgents"' in s
+    for v in ('input.float(119.9, "Entry")', 'input.float(114.9, "Stop")', 'input.float(124.9, "Target 1")', 'input.float(132.4, "Target 2")',
+              'input.string("long", "Side"', 'input.string("GO SMALLER", "Verdict"', "trend intact"):
+        assert v in s, v
+    assert "{{" not in s
+
+
+def test_tradingview_script_dry_run_and_template():
+    from pathlib import Path
+    from gemini_tradingagents import pine
+    s = pine.render(pine.from_run({"symbol": "BTC-USD", "final": "NO-GO", "judge": {"verdict": "NO-GO", "decision": "no trade"}, "stages": [], "order": None}))
+    assert 'input.string("none", "Side"' in s and 'input.string("NO-GO", "Verdict"' in s and "{{" not in s
+    assert (Path(__file__).parent.parent / "tradingview" / "gemini_tradingagents.pine").read_text(encoding="utf-8") == pine.generic()

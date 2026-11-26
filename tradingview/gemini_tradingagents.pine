@@ -1,0 +1,70 @@
+//@version=6
+// Gemini TradingAgents: levels and verdict from one run of gemini-tradingagents.
+// Template: type your own levels in the indicator settings.
+// Research and paper trading only. Not financial advice.
+indicator("Gemini TradingAgents", overlay = true, max_boxes_count = 10, max_lines_count = 20, max_labels_count = 20)
+
+// ---- values from the run (editable in the indicator settings)
+string iSymbol    = input.string("TICKER", "Symbol of the run")
+string iSide      = input.string("long", "Side", options = ["long", "short", "none"])
+string iVerdict   = input.string("GO", "Verdict", options = ["GO", "GO SMALLER", "NO-GO"])
+float  iEntry     = input.float(100.0, "Entry")
+float  iStop      = input.float(95.0, "Stop")
+float  iT1        = input.float(105.0, "Target 1")
+float  iT2        = input.float(112.5, "Target 2")
+int    iSignal    = input.time(timestamp("UTC", 2026, 1, 1, 0, 0), "Signal bar")
+string iRegime    = input.string("n/a", "Regime")
+string iThesis    = input.string("n/a", "Neon thesis")
+string iBacktest  = input.string("n/a", "Backtest")
+string iCommittee = input.string("n/a", "Committee")
+string iRules     = input.string("1% risk, 20% cap", "Risk rules")
+string iSize      = input.string("n/a", "Size")
+int    iBarsRight = input.int(20, "Box length (bars to the right)", minval = 1)
+
+// ---- colours
+color cGreen = #089981
+color cRed   = #f23645
+color cGold  = #f6a623
+color cText  = #e8eaf0
+color cMuted = #aab0bd
+color cPanel = #101420
+
+bool  isLong   = iSide == "long"
+bool  hasTrade = iSide != "none" and iEntry > 0 and iStop > 0 and iT1 > 0 and iT2 > 0
+color cVerdict = iVerdict == "NO-GO" ? #787b86 : isLong ? cGreen : cRed
+
+var table panel = table.new(position.top_right, 2, 12, bgcolor = cPanel, frame_color = #3a4256, frame_width = 1, border_color = #1f2433, border_width = 1)
+
+levelLine(float price, color col, int x1, int x2, string txt, color txtCol) =>
+    line.new(x1, price, x2, price, xloc = xloc.bar_time, color = col, width = 2)
+    label.new(x2, price, txt + " " + str.tostring(price, format.mintick), xloc = xloc.bar_time, style = label.style_label_left, color = col, textcolor = txtCol, size = size.small)
+
+row(int r, string k, string v, color vCol) =>
+    table.cell(panel, 0, r, k, text_color = cMuted, text_halign = text.align_left, text_size = size.small)
+    table.cell(panel, 1, r, v, text_color = vCol, text_halign = text.align_right, text_size = size.small)
+
+if barstate.islast
+    if hasTrade
+        int xRight = time + iBarsRight * timeframe.in_seconds() * 1000
+        box.new(iSignal, math.max(iEntry, iStop), xRight, math.min(iEntry, iStop), xloc = xloc.bar_time, border_color = cRed, bgcolor = color.new(cRed, 75), text = "RISK 1R", text_color = color.white, text_size = size.small, text_halign = text.align_right, text_valign = isLong ? text.align_bottom : text.align_top)
+        box.new(iSignal, math.max(iEntry, iT2), xRight, math.min(iEntry, iT2), xloc = xloc.bar_time, border_color = cGreen, bgcolor = color.new(cGreen, 75), text = "REWARD", text_color = color.white, text_size = size.small, text_halign = text.align_right, text_valign = isLong ? text.align_top : text.align_bottom)
+        levelLine(iEntry, cGold, iSignal, xRight, "ENTRY", #1a1205)
+        levelLine(iStop, cRed, iSignal, xRight, "STOP", color.white)
+        levelLine(iT1, #22e39a, iSignal, xRight, "T1", #06281c)
+        levelLine(iT2, cGreen, iSignal, xRight, "T2", color.white)
+        label.new(iSignal, iEntry, isLong ? "▲ LONG" : "▼ SHORT", xloc = xloc.bar_time, style = isLong ? label.style_label_up : label.style_label_down, color = isLong ? cGreen : cRed, textcolor = color.white, size = size.normal)
+    table.cell(panel, 0, 0, "GEMINI TRADINGAGENTS", text_color = #7cc4ff, text_halign = text.align_left, text_size = size.small)
+    table.cell(panel, 1, 0, iSymbol, text_color = cMuted, text_halign = text.align_right, text_size = size.small)
+    table.cell(panel, 0, 1, (iVerdict == "NO-GO" ? "" : isLong ? "▲ " : "▼ ") + iVerdict, bgcolor = cVerdict, text_color = color.white, text_size = size.large)
+    table.merge_cells(panel, 0, 1, 1, 1)
+    row(2, "Regime", iRegime, cText)
+    row(3, "Neon thesis", iThesis, cText)
+    row(4, "Backtest", iBacktest, cText)
+    row(5, "Committee", iCommittee, cText)
+    row(6, "Entry", hasTrade ? str.tostring(iEntry, format.mintick) : "none", cText)
+    row(7, "Stop", hasTrade ? str.tostring(iStop, format.mintick) : "none", cRed)
+    row(8, "Targets", hasTrade ? str.tostring(iT1, format.mintick) + " / " + str.tostring(iT2, format.mintick) : "none", cGreen)
+    row(9, "Risk rules", iRules, cGold)
+    row(10, "Size", iSize, cText)
+    table.cell(panel, 0, 11, "Example run · not financial advice", text_color = #6f7688, text_size = size.tiny)
+    table.merge_cells(panel, 0, 11, 1, 11)
