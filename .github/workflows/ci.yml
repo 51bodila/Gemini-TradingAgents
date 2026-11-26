@@ -1,7 +1,9 @@
 name: ci
+# Every push and pull request: tests, installer dry-run and pipeline dry-run on Windows, macOS and Linux. No keys needed.
 on: [push, pull_request]
 jobs:
   test:
+    name: tests (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
