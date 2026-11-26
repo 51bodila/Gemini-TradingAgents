@@ -1,3 +1,5 @@
+# Hedge fund committee for the Argon stage: a bull, a bear, a risk officer and a portfolio manager (PM)
+# argue every trade before Carbon makes the final call.
 # gemini-tradingagents mandate for virattt/ai-hedge-fund (aihf). Format from its hedge_fund/fund/example.yaml (MIT).
 # No tickers here: gemini-tradingagents passes --universe <TICKER>.
 schema_version: 2
